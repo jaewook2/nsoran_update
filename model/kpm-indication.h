@@ -386,18 +386,14 @@ private:
   void FillODuContainer (PF_Container_t *ranContainer, Ptr<ODuContainerValues> values);
   void FillAndEncodeKpmIndicationMessage (E2SM_KPM_IndicationMessage_t *descriptor,
                                           KpmIndicationMessageValues values,
-                                          const E2SM_KPM_IndicationMessage_FormatType &format_type =
-                                              E2SM_KPM_INDICATION_MESSAGE_FORMART3);
+                                          const E2SM_KPM_IndicationMessage_FormatType &format_type);
   void Encode (E2SM_KPM_IndicationMessage_t *descriptor);
 
   void FillKpmIndicationMessageFormat1 (E2SM_KPM_IndicationMessage_Format1 *ind_msg_f_1,
-                                        const Ptr<MeasurementItemList> ueIndication);
+                                        const Ptr<MeasurementItemList> ueIndication, 
+                                        const std::string& cellObjectId = "");
 
-  void FillKpmIndicationMessageFormat1 (E2SM_KPM_IndicationMessage_Format1 *ind_msg_f_1);
 
-  void FillKpmIndicationMessageFormat3 (E2SM_KPM_IndicationMessage_Format3 *ind_msg_f_3,
-                                        E2SM_KPM_IndicationMessage_Format1 *ind_msg_f_1,
-                                         const KpmIndicationMessageValues &values);
 
   void FillKpmIndicationMessageFormat3 (E2SM_KPM_IndicationMessage_Format3 *ind_msg_f_3,
                                         const KpmIndicationMessageValues &values);
@@ -414,3 +410,9 @@ private:
 } // namespace ns3
 
 #endif /* KPM_INDICATION_H */
+  //void FillKpmIndicationMessageFormat1 (E2SM_KPM_IndicationMessage_Format1 *ind_msg_f_1,
+  //                                        const std::string& cellObjectId = "");
+
+  //void FillKpmIndicationMessageFormat3 (E2SM_KPM_IndicationMessage_Format3 *ind_msg_f_3,
+  //                                      E2SM_KPM_IndicationMessage_Format1 *ind_msg_f_1,
+  //                                       const KpmIndicationMessageValues &values);
