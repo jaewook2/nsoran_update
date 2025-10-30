@@ -320,18 +320,19 @@ KpmIndicationHeader::FillAndEncodeKpmRicIndicationHeader (E2SM_KPM_IndicationHea
 
 }
 
-KpmIndicationMessage::KpmIndicationMessage (KpmIndicationMessageValues values)
+KpmIndicationMessage::KpmIndicationMessage (KpmIndicationMessageValues values, const E2SM_KPM_IndicationMessage_FormatType &format_type)
 {
-  E2SM_KPM_IndicationMessage_t* descriptor1 = (E2SM_KPM_IndicationMessage_t*)calloc(1, sizeof(*descriptor1));
+  E2SM_KPM_IndicationMessage_t* descriptor = (E2SM_KPM_IndicationMessage_t*)calloc(1, sizeof(*descriptor));
   CheckConstraints(values);
-  NS_LOG_DEBUG ("Make Cell KPI Massage");
-  FillAndEncodeKpmIndicationMessage(descriptor1, values, E2SM_KPM_INDICATION_MESSAGE_FORMART1); //E2SM_KPM_INDICATION_MESSAGE_FORMART1
-  ASN_STRUCT_FREE(asn_DEF_E2SM_KPM_IndicationMessage, descriptor1);
-
+  FillAndEncodeKpmIndicationMessage(descriptor, values, format_type); //E2SM_KPM_INDICATION_MESSAGE_FORMART1
+  ASN_STRUCT_FREE(asn_DEF_E2SM_KPM_IndicationMessage, descriptor);
+  /*
   E2SM_KPM_IndicationMessage_t* descriptor3 = (E2SM_KPM_IndicationMessage_t*)calloc(1, sizeof(*descriptor3));
   CheckConstraints(values);
+  NS_LOG_DEBUG ("Make UE KPI Massage");
   FillAndEncodeKpmIndicationMessage(descriptor3, values, E2SM_KPM_INDICATION_MESSAGE_FORMART3); //E2SM_KPM_INDICATION_MESSAGE_FORMART1
   ASN_STRUCT_FREE(asn_DEF_E2SM_KPM_IndicationMessage, descriptor3);
+  */
 }
 
 KpmIndicationMessage::~KpmIndicationMessage ()
@@ -791,6 +792,7 @@ KpmIndicationMessage::FillAndEncodeKpmIndicationMessage (
   switch (format_type)
     {
       case E2SM_KPM_INDICATION_MESSAGE_FORMART1: {
+        NS_LOG_DEBUG("Encode E2SM_KPM_I For Cell");
         
         E2SM_KPM_IndicationMessage_Format1_t *msg_fmt1 =
             (E2SM_KPM_IndicationMessage_Format1_t *)calloc(1, sizeof(*msg_fmt1));
@@ -805,7 +807,7 @@ KpmIndicationMessage::FillAndEncodeKpmIndicationMessage (
         Ptr<MeasurementItemList> cellItems = values.m_cellMeasurementItems;
         if (!cellItems)
         {
-            NS_LOG_DEBUG("Creating dummy MeasurementItemList because pointer was null");
+            NS_LOG_DEBUG("Creating MeasurementItemList For Cell");
             cellItems = Create<MeasurementItemList>(cellId);
             cellItems->AddItem("No Data", 0.0);
         }
@@ -821,6 +823,8 @@ KpmIndicationMessage::FillAndEncodeKpmIndicationMessage (
         break;
       }
       case E2SM_KPM_INDICATION_MESSAGE_FORMART3: {
+          NS_LOG_DEBUG("Encode E2SM_KPM_I For UE");
+
           E2SM_KPM_IndicationMessage_Format3_t *fmt3 = (E2SM_KPM_IndicationMessage_Format3_t*)calloc(1, sizeof(*fmt3));
 
           if (!fmt3) { NS_FATAL_ERROR("calloc failed for E2SM_KPM_IndicationMessage_Format3_t");}
@@ -858,7 +862,7 @@ KpmIndicationMessage::FillAndEncodeKpmIndicationMessage (
   NS_LOG_DEBUG(">>> ueMeasReportList count = "
     << descriptor->indicationMessage_formats.choice.indicationMessage_Format3->ueMeasReportList.list.count);
 
-  NS_LOG_DEBUG (xer_fprint (stderr, &asn_DEF_E2SM_KPM_IndicationMessage, descriptor));
+  //NS_LOG_DEBUG (xer_fprint (stderr, &asn_DEF_E2SM_KPM_IndicationMessage, descriptor));
   Encode (descriptor);
   printf (" \n *** Done Encoding INDICATION Message ****** \n ");
 }

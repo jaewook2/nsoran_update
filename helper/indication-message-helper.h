@@ -27,6 +27,9 @@
 
 #include <ns3/kpm-indication.h>
 
+
+
+
 namespace ns3 {
 
 class IndicationMessageHelper : public Object
@@ -36,8 +39,8 @@ public:
   IndicationMessageHelper (IndicationMessageType type, bool isOffline, bool reducedPmValues);
 
   ~IndicationMessageHelper ();
-
-  Ptr<KpmIndicationMessage> CreateIndicationMessage ();
+  // update 1029
+  Ptr<KpmIndicationMessage> CreateIndicationMessage (const std::string &targetType = "ue");
 
   bool const &
   IsOffline () const

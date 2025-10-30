@@ -34,7 +34,7 @@
 #include "e2sim.hpp"
 
 namespace ns3 {
-  
+
   class E2Termination : public Object 
   {
     public:

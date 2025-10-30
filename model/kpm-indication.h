@@ -299,7 +299,9 @@ public:
     std::set<Ptr<MeasurementItemList>> m_ueIndications; //!< list of Measurement Information Items
   };
 
-  KpmIndicationMessage (KpmIndicationMessageValues values);
+  //KpmIndicationMessage (KpmIndicationMessageValues values);
+  KpmIndicationMessage (KpmIndicationMessageValues values, const E2SM_KPM_IndicationMessage_FormatType &format_type = E2SM_KPM_INDICATION_MESSAGE_FORMART3);
+
   ~KpmIndicationMessage ();
 
   void *m_buffer;
@@ -407,6 +409,23 @@ private:
 
   void FillUeID (UEID_t *ue_ID, Ptr<MeasurementItemList> ueIndication);
 };
+
+  // 1029 update by jlee
+  class KpmIndicationPair : public Object
+    {
+    public:
+    // ns-3 매크로 (필수)
+    static TypeId GetTypeId (void)
+    {
+        static TypeId tid = TypeId ("ns3::KpmIndicationPair")
+        .SetParent<Object> ();
+        return tid;
+    }
+
+    Ptr<KpmIndicationMessage> cell;
+    Ptr<KpmIndicationMessage> ue;
+    };
+
 } // namespace ns3
 
 #endif /* KPM_INDICATION_H */

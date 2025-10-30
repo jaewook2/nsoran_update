@@ -23,8 +23,10 @@
  */
 
 #include <ns3/indication-message-helper.h>
+#include "ns3/log.h"
 
 namespace ns3 {
+NS_LOG_COMPONENT_DEFINE("IndicationMessageHelper");
 
 IndicationMessageHelper::IndicationMessageHelper (IndicationMessageType type, bool isOffline,
                                                   bool reducedPmValues)
@@ -74,11 +76,23 @@ IndicationMessageHelper::FillBaseCuCpValues (uint16_t numActiveUes)
 IndicationMessageHelper::~IndicationMessageHelper ()
 {
 }
-
+//update 1029
 Ptr<KpmIndicationMessage>
-IndicationMessageHelper::CreateIndicationMessage ()
+IndicationMessageHelper::CreateIndicationMessage (const std::string &targetType)
 {
-  return Create<KpmIndicationMessage> (m_msgValues);
+  // 1029 based on format type the object of KpmIndicationMessage Create
+  E2SM_KPM_IndicationMessage_FormatType format_type;
+
+  if (targetType == "cell" ) {
+      format_type = E2SM_KPM_INDICATION_MESSAGE_FORMART1;
+  }  else if (targetType == "ue") {
+      format_type = E2SM_KPM_INDICATION_MESSAGE_FORMART3;
+  } else {
+      NS_LOG_WARN("Unknown target type: " << targetType << ", defaulting to UE (Format3)");
+      format_type = E2SM_KPM_INDICATION_MESSAGE_FORMART3;
+  }
+
+  return Create<KpmIndicationMessage> (m_msgValues, format_type);
 }
 
 } // namespace ns3
