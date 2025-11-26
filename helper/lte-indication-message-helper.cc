@@ -99,6 +99,56 @@ LteIndicationMessageHelper::AddCuCpUePmItem (std::string ueImsiComplete, long nu
   m_msgValues.m_ueIndications.insert (ueVal);
 }
 
+// 추가 update 1111
+
+void
+LteIndicationMessageHelper::AddeNBUePmItem (std::string ueImsiComplete, long txBytes,
+                                             long txDlPackets, double pdcpThroughput,
+                                             double pdcpLatency,  long numDrb,
+                                             long drbRelAct)
+{
+  Ptr<MeasurementItemList> ueVal = Create<MeasurementItemList> (ueImsiComplete);
+  long ueImsiLong = std::stoll(ueImsiComplete);
+    ueVal->AddItem<long> ("UEID", ueImsiLong);
+
+  if (!m_reducedPmValues)
+    {
+      // cuup
+      ueVal->AddItem<long> ("DRB.PdcpSduVolumeDl_Filter.UEID", txBytes);
+      ueVal->AddItem<long> ("Tot.PdcpSduNbrDl.UEID", txDlPackets);
+      ueVal->AddItem<double> ("DRB.PdcpSduBitRateDl.UEID", pdcpThroughput);
+      ueVal->AddItem<double> ("DRB.PdcpSduDelayDl.UEID", pdcpLatency);
+      // cucp
+      ueVal->AddItem<long> ("DRB.EstabSucc.5QI.UEID", numDrb);
+      ueVal->AddItem<long> ("DRB.RelActNbr.5QI.UEID", drbRelAct); // not modeled in the simulator
+    }
+
+  m_msgValues.m_ueIndications.insert (ueVal);
+}
+
+
+void
+LteIndicationMessageHelper::AddeNBCellPmItem (long cellid, double cellAverageLatency, long pdcpBytesUl, long pdcpBytesDl, uint16_t numActiveUes)
+{
+    Ptr<MeasurementItemList> cellVal = Create<MeasurementItemList> ();
+  
+    cellVal->AddItem<long> ("cellID", cellid);
+
+  if (!m_reducedPmValues)
+    {
+      cellVal->AddItem<double> ("DRB.PdcpSduDelayDl", cellAverageLatency);
+
+      // PM 정보를 Cell 정보로 변경
+      cellVal->AddItem<double> ("pdcpBytesUl", pdcpBytesUl);
+      cellVal->AddItem<double> ("pdcpBytesDl", pdcpBytesDl);
+      cellVal->AddItem<double> ("numActiveUes", numActiveUes);
+
+
+      m_msgValues.m_cellMeasurementItems = cellVal;
+    }
+
+    
+}
 LteIndicationMessageHelper::~LteIndicationMessageHelper ()
 {
 }

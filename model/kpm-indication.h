@@ -84,15 +84,40 @@ extern "C" {
 #include "MeasurementRecordItem.h"
 #include "MeasurementDataItem.h"
 #include "MeasurementInfoItem.h"
+#include "MeasurementCondUEidList.h"
+#include "MeasurementCondUEidItem.h"
+#include "MeasurementType.h"
+#include "MatchingCondList.h"
+#include "MatchingCondItem.h"
+#include "TestCondInfo.h"
+#include "TestCond-Type.h"
+#include "TestCond-Expression.h"
+#include "TestCond-Value.h"
+#include "MatchingUEidList.h"
+#include "MatchingUEidItem.h"
+#include "UEID.h"
+
+
+
+
 #include "LabelInfoItem.h"
 #include "MeasurementLabel.h"
 #include "E2SM-KPM-IndicationMessage-Format3.h"
 #include "UEMeasurementReportItem.h"
 #include "UEID-GNB.h"
+// add
+#include "E2SM-KPM-IndicationMessage-Format2.h"
+
 }
 
 namespace ns3 {
 
+struct UeReport
+{
+  std::string ueId;
+  std::vector<std::string> metricNames;
+  std::vector<double> metricValues;
+};
 enum E2SM_KPM_IndicationMessage_FormatType {
   E2SM_KPM_INDICATION_MESSAGE_FORMART1 = 0,
   E2SM_KPM_INDICATION_MESSAGE_FORMART2,
@@ -227,6 +252,17 @@ public:
   long m_pDCPBytesDL; //!< total PDCP bytes transmitted DL
 };
 
+// 1111 additional 
+class eNBContainerValues : public PmContainerValues
+{
+public:
+  std::string m_plmId; //!< PLMN identity, octet string, 3 bytes
+  long m_pDCPBytesUL; //!< total PDCP bytes transmitted UL
+  long m_pDCPBytesDL; //!< total PDCP bytes transmitted DL
+  uint16_t m_numActiveUes; 
+};
+
+
 /**
   * Contains the values to be inserted in the O-DU EPC Measurement Container  
   */
@@ -281,6 +317,16 @@ class ODuContainerValues : public PmContainerValues
 {
 public:
   std::set<Ptr<CellResourceReport>> m_cellResourceReportItems;
+};
+
+class gNBContainerValues : public PmContainerValues
+{
+public:
+  std::string m_plmId; //!< PLMN identity, octet string, 3 bytes
+  long m_pDCPBytesUL; //!< total PDCP bytes transmitted UL
+  long m_pDCPBytesDL; //!< total PDCP bytes transmitted DL
+  std::set<Ptr<CellResourceReport>> m_cellResourceReportItems;
+  uint16_t m_numActiveUes; 
 };
 
 class KpmIndicationMessage : public SimpleRefCount<KpmIndicationMessage>
@@ -396,6 +442,10 @@ private:
                                         const std::string& cellObjectId = "");
 
 
+  std::vector<UeReport> ExtractUeReports(const KpmIndicationMessageValues &values);
+
+  void FillKpmIndicationMessageFormat2 (E2SM_KPM_IndicationMessage_Format2 *ind_msg_f_2,
+                                       const KpmIndicationMessageValues &values);
 
   void FillKpmIndicationMessageFormat3 (E2SM_KPM_IndicationMessage_Format3 *ind_msg_f_3,
                                         const KpmIndicationMessageValues &values);

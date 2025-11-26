@@ -35,7 +35,7 @@ namespace ns3 {
 class IndicationMessageHelper : public Object
 {
 public:
-  enum class IndicationMessageType { CuCp = 0, CuUp = 1, Du = 2 };
+  enum class IndicationMessageType { CuCp = 0, CuUp = 1, Du = 2 , eNB =3, gNB =4}; // UPDATE 1111
   IndicationMessageHelper (IndicationMessageType type, bool isOffline, bool reducedPmValues);
 
   ~IndicationMessageHelper ();
@@ -53,6 +53,8 @@ protected:
 
   void FillBaseCuCpValues (uint16_t numActiveUes);
 
+  void FillBaseeNBValues (std::string plmId,uint16_t numActiveUes);
+
   IndicationMessageType m_type;
   bool m_offline;
   bool m_reducedPmValues;
@@ -60,6 +62,10 @@ protected:
   Ptr<OCuUpContainerValues> m_cuUpValues;
   Ptr<OCuCpContainerValues> m_cuCpValues;
   Ptr<ODuContainerValues> m_duValues;
+  Ptr<eNBContainerValues> m_enbValues; // UPDATE 11111
+  Ptr<gNBContainerValues> m_gnbValues; // UPDATE 11111
+
+
 };
 
 } // namespace ns3
