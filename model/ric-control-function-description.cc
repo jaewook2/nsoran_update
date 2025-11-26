@@ -78,7 +78,7 @@ RicControlFunctionDescription::FillAndEncodeRCFunctionDescription (
 {
   constexpr long FORMAT_1_E2SM_RC_CTRL_HDR =0;
   constexpr long FORMAT_1_E2SM_RC_CTRL_MSG =0;
-  std::string shortNameBuffer = "ORAN-WG3-RC";
+  std::string shortNameBuffer = "ORAN-E2SM-RC";
 
   Ptr<OctetString> shortName = Create<OctetString> (shortNameBuffer, shortNameBuffer.size ());
 
@@ -86,8 +86,8 @@ RicControlFunctionDescription::FillAndEncodeRCFunctionDescription (
 
   // This part is not in the specs, maybe it can be removed?
   // RIC Control Definitions
-  uint8_t *descriptionBuffer = (uint8_t *) "RICC";
-  uint8_t *oidBuffer = (uint8_t *) "OID123"; // this is optional, dummy value
+  uint8_t *descriptionBuffer = (uint8_t *) "O-RAN E2SM RAN Control Service Model";
+  uint8_t *oidBuffer = (uint8_t *) "1.3.6.1.4.1.53148.1.1.2.100"; // this is optional, dummy value
 
   long *inst = (long *) calloc (1, sizeof (long));
 

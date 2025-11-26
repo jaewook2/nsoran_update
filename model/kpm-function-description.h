@@ -57,7 +57,7 @@ typedef struct
   class KpmFunctionDescription : public FunctionDescription
   {
   public:
-    KpmFunctionDescription ();
+    KpmFunctionDescription (int nb_type);
     ~KpmFunctionDescription ();
     
   private:
@@ -67,7 +67,7 @@ typedef struct
     * \param kpmFunctionDescription the RAN Function Description item
     */
     OCTET_STRING cp_str_to_ba(const char* str);
-    void FillAndEncodeKpmFunctionDescription (E2SM_KPM_RANfunction_Description_t* descriptor);
+    void FillAndEncodeKpmFunctionDescription (E2SM_KPM_RANfunction_Description_t* descriptor, int nb_type);
     void Encode (E2SM_KPM_RANfunction_Description_t* descriptor);
   };
   

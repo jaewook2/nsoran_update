@@ -64,13 +64,43 @@ public:
   void AddCuCpUePmItem (std::string ueImsiComplete, long numDrb, long drbRelAct,
                         Ptr<L3RrcMeasurements> l3RrcMeasurementServing,
                         Ptr<L3RrcMeasurements> l3RrcMeasurementNeigh);
-  // void AddCuCpUePmItem (std::string ueImsiComplete, long numDrb, long drbRelAct,
-  //                       Ptr<L3RrcMeasurements> l3RrcMeasurementServing,
-  //                       Ptr<L3RrcMeasurements> l3RrcMeasurementNeigh, long m_cellId, long imsi,
-  //                         long sinrThisCell,  long convertedSinr);
+  
+  void AddgNBUeItem (std::string ueImsiComplete, long numDrb,
+                                                long drbRelAct,
+                                                long txPdcpPduBytesNrRlc, long txPdcpPduNrRlc, 
+                                                long macPduUe, long macPduInitialUe, long macQpsk, 
+                                                long mac16Qam, long mac64Qam, long macRetx, 
+                                                long macVolume, long macPrb, long macMac04, 
+                                                long macMac59, long macMac1014, long macMac1519, 
+                                                long macMac2024, long macMac2529, long macSinrBin1,
+                                                long macSinrBin2, long macSinrBin3, long macSinrBin4, 
+                                                long macSinrBin5, long macSinrBin6, long macSinrBin7, 
+                                                long rlcBufferOccup, double drbThrDlUeid,
+                                                double sinrServCell, double convertedSinrServCell, uint16_t IDServCell,
+                                                double sinrNeigCell1, double convertedSinrNeigCell1,  uint16_t IDNeigCell1,
+                                                double sinrNeigCell2, double convertedSinrNeigCell2,  uint16_t IDNeigCell2,
+                                                double sinrNeigCell3, double convertedSinrNeigCell3,  uint16_t IDNeigCell3,
+                                                double sinrNeigCell4, double convertedSinrNeigCell4,  uint16_t IDNeigCell4,
+                                                double sinrNeigCell5, double convertedSinrNeigCell5,  uint16_t IDNeigCell5,
+                                                double sinrNeigCell6, double convertedSinrNeigCell6,  uint16_t IDNeigCell6,   
+                                                double sinrNeigCell7, double convertedSinrNeigCell7,  uint16_t IDNeigCell7,   
+                                                double sinrNeigCell8, double convertedSinrNeigCell8,  uint16_t IDNeigCell8);
+
+  void AddgNBCellItem (uint16_t numActiveUes,
+    long macPduCellSpecific, long macPduInitialCellSpecific, long macQpskCellSpecific,
+    long mac16QamCellSpecific, long mac64QamCellSpecific, double prbUtilizationDl,
+    long macRetxCellSpecific, long macVolumeCellSpecific, long macMac04CellSpecific,
+    long macMac59CellSpecific, long macMac1014CellSpecific, long macMac1519CellSpecific,
+    long macMac2024CellSpecific, long macMac2529CellSpecific, long macSinrBin1CellSpecific,
+    long macSinrBin2CellSpecific, long macSinrBin3CellSpecific, long macSinrBin4CellSpecific,
+    long macSinrBin5CellSpecific, long macSinrBin6CellSpecific, long macSinrBin7CellSpecific,
+    long rlcBufferOccupCellSpecific, long activeUeDl,
+    long dlAvailablePrbs, long ulAvailablePrbs, long qci,
+    long dlPrbUsage, long ulPrbUsage);
 
 private:
 };
+
 
 } // namespace ns3
 

@@ -47,6 +47,13 @@ public:
 
   void AddCuCpUePmItem (std::string ueImsiComplete, long numDrb, long drbRelAct);
 
+  // 1111 update
+  void AddeNBUePmItem (std::string ueImsiComplete, long txBytes,
+                                             long txDlPackets, double pdcpThroughput,
+                                             double pdcpLatency,  long numDrb,
+                                             long drbRelAct);
+  void AddeNBCellPmItem (double cellAverageLatency, long pdcpBytesUl, long pdcpBytesDl, uint16_t numActiveUes);
+
 private:
 };
 
