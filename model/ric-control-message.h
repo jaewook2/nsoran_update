@@ -37,8 +37,15 @@ extern "C" {
   #include "RICcontrolRequest.h"
   #include "ProtocolIE-Field.h"
   #include "InitiatingMessage.h"
-  #include "CellGlobalID.h"
-  #include "NRCGI.h"
+  //#include "CellGlobalID.h"
+  //#include "NRCGI.h"
+
+  #include "E2SM-RC-ControlMessage-Format1-Item.h"   // ★ 필수
+  #include "RANParameter-ValueType.h"               // ★ 필수
+  #include "RANParameter-ValueType-Choice-ElementFalse.h"
+  #include "UEID-GNB.h"
+  #include "UEID-GNB-CU-CP-F1AP-ID-Item.h"
+  #include "UEID-GNB-CU-F1AP-ID-List.h"
  }
 
 namespace ns3 {
@@ -52,16 +59,21 @@ namespace ns3 {
 
     ControlMessageRequestIdType m_requestType;
     
-    static std::vector<RANParameterItem> ExtractRANParametersFromControlMessage (
-      E2SM_RC_ControlMessage_Format1_t *e2SmRcControlMessageFormat1);
+    //static std::vector<RANParameterItem> ExtractRANParametersFromControlMessage (E2SM_RC_ControlMessage_Format1_t *e2SmRcControlMessageFormat1);
+   
+
     
-    std::vector<RANParameterItem> m_valuesExtracted;
+   // std::vector<RANParameterItem> m_valuesExtracted;
     RANfunctionID_t m_ranFunctionId;
     RICrequestID_t m_ricRequestId;
     RICcallProcessID_t m_ricCallProcessId;
     E2SM_RC_ControlHeader_Format1_t *m_e2SmRcControlHeaderFormat1;
     E2SM_RC_ControlMessage_Format1 *m_e2SmRcControlMessageFormat1;
     std::string GetSecondaryCellIdHO ();
+ 
+      // add 
+    uint16_t GetTargetCell() const; 
+    uint64_t GetUeId() const;
 
   private:
     /**
@@ -71,6 +83,7 @@ namespace ns3 {
     */
     void DecodeRicControlMessage (E2AP_PDU_t *pdu);
     std::string m_secondaryCellId;
+    uint16_t m_targetCellId = 2; 
   };
 }
 

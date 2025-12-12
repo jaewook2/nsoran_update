@@ -31,9 +31,9 @@
 #include <ns3/log.h>
 
 extern "C" {  
-  #include "RIC-ControlStyle-Item.h"
-  #include "RIC-ControlAction-Item.h"
-  #include "RAN-ControlParameter-Item.h"
+//  #include "RIC-ControlStyle-Item.h"
+//  #include "RIC-ControlAction-Item.h"
+//  #include "RAN-ControlParameter-Item.h"
 }
 
 namespace ns3 {
@@ -87,7 +87,7 @@ RicControlFunctionDescription::FillAndEncodeRCFunctionDescription (
   // This part is not in the specs, maybe it can be removed?
   // RIC Control Definitions
   uint8_t *descriptionBuffer = (uint8_t *) "O-RAN E2SM RAN Control Service Model";
-  uint8_t *oidBuffer = (uint8_t *) "1.3.6.1.4.1.53148.1.1.2.100"; // this is optional, dummy value
+  uint8_t *oidBuffer = (uint8_t *) "1.3.6.1.4.1.53148.1.1.1.4"; // this is optional, dummy value //1203 .100-> .4
 
   long *inst = (long *) calloc (1, sizeof (long));
 

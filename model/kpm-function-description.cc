@@ -161,8 +161,13 @@ int NUMBER_MEASUREMENTS_CELL_GNB = 30; // 4
 
 KpmFunctionDescription::KpmFunctionDescription (int nb_type)
 {
+  NS_LOG_DEBUG ("Create KPM Function Descrption");
   E2SM_KPM_RANfunction_Description_t *descriptor = new E2SM_KPM_RANfunction_Description_t ();
+  NS_LOG_DEBUG ("Create KPM Function Descrption");
+
   FillAndEncodeKpmFunctionDescription (descriptor, nb_type);
+  NS_LOG_DEBUG ("Create KPM Function Descrption Done");
+
   ASN_STRUCT_FREE_CONTENTS_ONLY (asn_DEF_E2SM_KPM_RANfunction_Description, descriptor);
   delete descriptor;
 }
@@ -176,40 +181,7 @@ KpmFunctionDescription::~KpmFunctionDescription ()
 void
 KpmFunctionDescription::Encode (E2SM_KPM_RANfunction_Description_t *descriptor)
 {
-  /*
-  if (false) {
-    asn_codec_ctx_t *opt_cod = 0; // disable stack bounds checking
-    // encode the structure into the e2smbuffer
-    asn_encode_to_new_buffer_result_s encodedMsg = asn_encode_to_new_buffer (
-        opt_cod, ATS_ALIGNED_BASIC_PER, &asn_DEF_E2SM_KPM_RANfunction_Description, descriptor);
-
-    if (encodedMsg.result.encoded < 0)
-      {        
-        NS_FATAL_ERROR ("Error during the encoding of the RIC Indication Header, errno: "
-                        << strerror (errno) << ", failed_type " << encodedMsg.result.failed_type->name
-                        << ", structure_ptr " << encodedMsg.result.structure_ptr);
-      }
-
-    m_buffer = encodedMsg.buffer;
-    m_size = encodedMsg.result.encoded;
-  } else {
-    asn_codec_ctx_t *opt_cod = 0; // disable stack bounds checking
-    // encode the structure into the e2smbuffer
-    Bytee_array_t ba = {.buf = (uint8_t *) malloc (2048), .len = 2048};  //2048
-    asn_enc_rval_t encodedMsg = asn_encode_to_buffer(
-        opt_cod, ATS_ALIGNED_BASIC_PER, &asn_DEF_E2SM_KPM_RANfunction_Description, descriptor,ba.buf,ba.len);
-
-    if (encodedMsg.encoded < 0)
-      {        
-        NS_FATAL_ERROR ("Error during the encoding of the RIC Indication Header, errno: "
-                        << strerror (errno) << ", failed_type " << encodedMsg.failed_type->name
-                        << ", structure_ptr " << encodedMsg.structure_ptr);
-      }
-
-    m_buffer = ba.buf;
-    m_size = encodedMsg.encoded;
-  }
-    */
+  
   asn_codec_ctx_t *opt_cod = 0; // disable stack bounds checking
 
   size_t e2smbuffer_size = 8192;
@@ -217,12 +189,14 @@ KpmFunctionDescription::Encode (E2SM_KPM_RANfunction_Description_t *descriptor)
   if (!e2smbuffer) {
       NS_FATAL_ERROR("Failed to allocate memory for e2smbuffer");
   }
+  NS_LOG_DEBUG("Encoding Start1");
 
   asn_enc_rval_t er =
     asn_encode_to_buffer(opt_cod,
           ATS_ALIGNED_BASIC_PER,
           &asn_DEF_E2SM_KPM_RANfunction_Description,
           descriptor, e2smbuffer, e2smbuffer_size);
+  NS_LOG_DEBUG("Encoding Start2");
 
   if (er.encoded < 0) {
       NS_FATAL_ERROR("Encoding failed: errno: "
@@ -265,7 +239,7 @@ KpmFunctionDescription::FillAndEncodeKpmFunctionDescription (
   uint8_t* short_name = (uint8_t*)"ORAN-E2SM-KPM";
   uint8_t* func_desc = (uint8_t*)"O-RAN E2SM KPM Function";
   uint8_t* e2sm_odi = (uint8_t*)"1.3.6.1.4.1.53148.1.2.2.1";
-  
+
   ASN_STRUCT_RESET(asn_DEF_E2SM_KPM_RANfunction_Description, ranfunc_desc);
 
   ranfunc_desc->ranFunction_Name.ranFunction_ShortName.size = strlen((char*)short_name);
@@ -370,71 +344,9 @@ KpmFunctionDescription::FillAndEncodeKpmFunctionDescription (
     ASN_SEQUENCE_ADD(&measInfo_Action_List_cell_gnb->list, measItem);
   }
 
-  /*
-  RIC_ReportStyle_Item_t* report_style1 = (RIC_ReportStyle_Item_t*)calloc(1, sizeof(RIC_ReportStyle_Item_t));
-  report_style1->ric_ReportStyle_Type = 1;
-  uint8_t* buf5 = (uint8_t*)"E2 Node Measurement";
-  report_style1->ric_ReportStyle_Name.buf = (uint8_t*)calloc(1, strlen((char*)buf5));
-  memcpy(report_style1->ric_ReportStyle_Name.buf, buf5, strlen((char*)buf5));
-  report_style1->ric_ReportStyle_Name.size = strlen((char*)buf5);
-  report_style1->ric_ActionFormat_Type = 1;
-  report_style1->ric_IndicationHeaderFormat_Type = 1;
-  report_style1->ric_IndicationMessageFormat_Type = 1;
-  report_style1->measInfo_Action_List = *measInfo_Action_List;
 
-  RIC_ReportStyle_Item_t* report_style2 = (RIC_ReportStyle_Item_t*)calloc(1, sizeof(RIC_ReportStyle_Item_t));
-  report_style2->ric_ReportStyle_Type = 2;
-  uint8_t* buf6 = (uint8_t*)"E2 Node Measurement for a single UE";
-  report_style2->ric_ReportStyle_Name.buf = (uint8_t*)calloc(1, strlen((char*)buf6));
-  memcpy(report_style2->ric_ReportStyle_Name.buf, buf6, strlen((char*)buf6));
-  report_style2->ric_ReportStyle_Name.size = strlen((char*)buf6);
-  report_style2->ric_ActionFormat_Type = 2;
-  report_style2->ric_IndicationHeaderFormat_Type = 1;
-  report_style2->ric_IndicationMessageFormat_Type = 1;
-  report_style2->measInfo_Action_List = *measInfo_Action_List;
-
-  RIC_ReportStyle_Item_t* report_style3 = (RIC_ReportStyle_Item_t*)calloc(1, sizeof(RIC_ReportStyle_Item_t));
-  report_style3->ric_ReportStyle_Type = 3;
-  uint8_t* buf7 = (uint8_t*)"Condition-based, UE-level E2 Node Measurement";
-  report_style3->ric_ReportStyle_Name.buf = (uint8_t*)calloc(1, strlen((char*)buf7));
-  memcpy(report_style3->ric_ReportStyle_Name.buf, buf7, strlen((char*)buf7));
-  report_style3->ric_ReportStyle_Name.size = strlen((char*)buf7);
-  report_style3->ric_ActionFormat_Type = 3;
-  report_style3->ric_IndicationHeaderFormat_Type = 1;
-  report_style3->ric_IndicationMessageFormat_Type = 2;
-  report_style3->measInfo_Action_List = *measInfo_Action_List;
-
-  RIC_ReportStyle_Item_t* report_style4 =(RIC_ReportStyle_Item_t*)calloc(1, sizeof(RIC_ReportStyle_Item_t));
-  report_style4->ric_ReportStyle_Type = 4;
-  uint8_t* buf8 = (uint8_t*)"Common Condition-based, UE-level Measurement";
-  report_style4->ric_ReportStyle_Name.buf = (uint8_t*)calloc(1, strlen((char*)buf8));
-  memcpy(report_style4->ric_ReportStyle_Name.buf, buf8, strlen((char*)buf8));
-  report_style4->ric_ReportStyle_Name.size = strlen((char*)buf8);
-  report_style4->ric_ActionFormat_Type = 4;
-  report_style4->ric_IndicationHeaderFormat_Type = 1;
-  report_style4->ric_IndicationMessageFormat_Type = 3;
-  report_style4->measInfo_Action_List = *measInfo_Action_List;
-
-  RIC_ReportStyle_Item_t* report_style5 = (RIC_ReportStyle_Item_t*)calloc(1, sizeof(RIC_ReportStyle_Item_t));
-  report_style5->ric_ReportStyle_Type = 5;
-  uint8_t* buf9 = (uint8_t*)"E2 Node Measurement for multiple UEs";
-  report_style5->ric_ReportStyle_Name.buf = (uint8_t*)calloc(1, strlen((char*)buf9));
-  memcpy(report_style5->ric_ReportStyle_Name.buf, buf9, strlen((char*)buf9));
-  report_style5->ric_ReportStyle_Name.size = strlen((char*)buf9);
-  report_style5->ric_ActionFormat_Type = 5;
-  report_style5->ric_IndicationHeaderFormat_Type = 1;
-  report_style5->ric_IndicationMessageFormat_Type = 3;
-  report_style5->measInfo_Action_List = *measInfo_Action_List; 
-   */
   ranfunc_desc->ric_ReportStyle_List = (E2SM_KPM_RANfunction_Description::E2SM_KPM_RANfunction_Description__ric_ReportStyle_List*) calloc(1, sizeof(E2SM_KPM_RANfunction_Description::E2SM_KPM_RANfunction_Description__ric_ReportStyle_List));
-  /*
-  ASN_SEQUENCE_ADD(&ranfunc_desc->ric_ReportStyle_List->list, report_style1);
-  ASN_SEQUENCE_ADD(&ranfunc_desc->ric_ReportStyle_List->list, report_style2);
-  ASN_SEQUENCE_ADD(&ranfunc_desc->ric_ReportStyle_List->list, report_style3);
-  ASN_SEQUENCE_ADD(&ranfunc_desc->ric_ReportStyle_List->list, report_style4);
-  ASN_SEQUENCE_ADD(&ranfunc_desc->ric_ReportStyle_List->list, report_style5);
-  */
-
+  
     // UE와 Cell 에따라 변경 + NR / ENB냐에 따라 변경
   auto clone_measInfoList = [&](MeasurementInfo_Action_List_t *src) {
     MeasurementInfo_Action_List_t *dst = (MeasurementInfo_Action_List_t *)calloc(1, sizeof(*dst));
@@ -450,7 +362,7 @@ KpmFunctionDescription::FillAndEncodeKpmFunctionDescription (
     }
     return dst;
   };
-  
+
   // report_meastype : 1 cell, 0 UE
   // nb_type : 1 NR, 2 eNB
   auto make_report_style = [&](int type, const char *name, int actionFmt, int hdrFmt, int msgFmt, int report_meastype, int nb_type) {

@@ -38,23 +38,22 @@ IndicationMessageHelper::IndicationMessageHelper (IndicationMessageType type, bo
       switch (type)
         {
         case IndicationMessageType::CuUp:
-          m_cuUpValues = Create<OCuUpContainerValues> ();
+          m_msgValues.m_cellObjectId = "CellCUUP";
           break;
 
         case IndicationMessageType::CuCp:
-          m_cuCpValues = Create<OCuCpContainerValues> ();
-          m_msgValues.m_cellObjectId = "NRCellCU";
+          m_msgValues.m_cellObjectId = "CellCUCP";
           break;
 
         case IndicationMessageType::Du:
-          m_duValues = Create<ODuContainerValues> ();
+          m_msgValues.m_cellObjectId = "CellCDU";
           break;
 
         case IndicationMessageType::eNB:
-          m_enbValues = Create<eNBContainerValues> ();
+          m_msgValues.m_cellObjectId = "eNB";
           break;
         case IndicationMessageType::gNB:
-          m_gnbValues = Create<gNBContainerValues> ();
+          m_msgValues.m_cellObjectId = "gNB";
           break;
         default:
 
@@ -63,31 +62,6 @@ IndicationMessageHelper::IndicationMessageHelper (IndicationMessageType type, bo
     }
 }
 
-void
-IndicationMessageHelper::FillBaseCuUpValues (std::string plmId)
-{
-  NS_ABORT_MSG_IF (m_type != IndicationMessageType::CuUp, "Wrong function for this object");
-  m_cuUpValues->m_plmId = plmId;
-  m_msgValues.m_pmContainerValues = m_cuUpValues;
-}
-
-void
-IndicationMessageHelper::FillBaseCuCpValues (uint16_t numActiveUes)
-{
-  //NS_ABORT_MSG_IF (m_type != IndicationMessageType::CuCp, "Wrong function for this object");
-  m_cuCpValues->m_numActiveUes = numActiveUes;
-  m_msgValues.m_pmContainerValues = m_cuCpValues;
-}
-
-// update 1111
-void
-IndicationMessageHelper::FillBaseeNBValues (std::string plmId,uint16_t numActiveUes)
-{
-  NS_ABORT_MSG_IF (m_type != IndicationMessageType::eNB, "Wrong function for this object");
-  m_enbValues->m_plmId = plmId;
-  m_enbValues->m_numActiveUes = numActiveUes;
-  m_msgValues.m_pmContainerValues = m_enbValues;
-}
 
 
 IndicationMessageHelper::~IndicationMessageHelper ()
@@ -108,61 +82,6 @@ IndicationMessageHelper::CreateIndicationMessage (const std::string &targetType)
       NS_LOG_WARN("Unknown target type: " << targetType << ", defaulting to UE (Format3)");
       format_type = E2SM_KPM_INDICATION_MESSAGE_FORMART3;
   }
-/*
-  // 1115 For Debug
-  Ptr<MeasurementItemList> cellItems = m_msgValues.m_cellMeasurementItems;
-  if (!cellItems)
-  {
-    NS_LOG_DEBUG("Empty MeasurementItemList For Cell");
-  }
-  else
-  {
-    auto items = cellItems->GetItems();
-    NS_LOG_INFO("Number of items = " << items.size());
-
-    for (const auto &mesItem : items)
-    {
-      auto v = mesItem->GetValue();   // pmType, pmVal 들어있는 struct
-
-      // ----- 이름(label) 꺼내기 -----
-      std::string name = "UNKNOWN";
-      if (v.pmType.present == MeasurementType_PR_measName &&
-          v.pmType.choice.measName.buf != nullptr &&
-          v.pmType.choice.measName.size > 0)
-      {
-        name.assign(
-            reinterpret_cast<char*>(v.pmType.choice.measName.buf),
-            v.pmType.choice.measName.size);
-      }
-
-      NS_LOG_INFO("  Measurement name = " << name);
-
-      // ----- 값(value) 꺼내기 -----
-      switch (v.pmVal.present)
-      {
-        case MeasurementValue_PR_valueInt:
-          NS_LOG_INFO("  Measurement value (INT)  = " << v.pmVal.choice.valueInt);
-          break;
-
-        case MeasurementValue_PR_valueReal:
-          NS_LOG_INFO("  Measurement value (REAL) = " << v.pmVal.choice.valueReal);
-          break;
-
-        case MeasurementValue_PR_noValue:
-          NS_LOG_INFO("  Measurement value = <noValue>");
-          break;
-
-        case MeasurementValue_PR_valueRRC:
-          NS_LOG_INFO("  Measurement value = <RRC struct pointer>");
-          break;
-
-        default:
-          NS_LOG_INFO("  Measurement value = <unknown type: " << v.pmVal.present << ">");
-          break;
-      }
-    }
-}
-*/
 
   return Create<KpmIndicationMessage> (m_msgValues, format_type);
 }

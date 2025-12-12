@@ -65,6 +65,94 @@ namespace ns3 {
 
 NS_LOG_COMPONENT_DEFINE ("KpmIndication");
 
+//add for maintain meas information
+MeasurementItem::MeasurementItem(std::string name, long value)
+{
+  m_recordItem = nullptr;
+  m_infoItem = nullptr;
+
+  CreateInfoItem(name);
+  CreateRecordItem(value);
+}
+
+MeasurementItem::MeasurementItem(std::string name, double value)
+{
+  m_recordItem = nullptr;
+  m_infoItem = nullptr;
+
+  CreateInfoItem(name);
+  CreateRecordItem(value);
+}
+
+
+MeasurementItem::~MeasurementItem()
+{
+  if (m_recordItem)
+  {
+    ASN_STRUCT_FREE(asn_DEF_MeasurementRecordItem, m_recordItem);
+  }
+
+  if (m_infoItem)
+  {
+    ASN_STRUCT_FREE(asn_DEF_MeasurementInfoItem, m_infoItem);
+  }
+}
+
+MeasurementRecordItem_t* 
+MeasurementItem::GetRecordItem()
+{
+  return m_recordItem;
+}
+
+MeasurementInfoItem_t* 
+MeasurementItem::GetInfoItem()
+{
+  return m_infoItem;
+}
+
+void
+MeasurementItem::CreateRecordItem(long value)
+{
+  m_recordItem = (MeasurementRecordItem_t*)calloc(1, sizeof(MeasurementRecordItem_t));
+
+  m_recordItem->present = MeasurementRecordItem_PR_integer;
+  m_recordItem->choice.integer = value;
+}
+
+void 
+MeasurementItem::CreateRecordItem(double value)
+{
+  m_recordItem = (MeasurementRecordItem_t*)calloc(1, sizeof(MeasurementRecordItem_t));
+
+  m_recordItem->present = MeasurementRecordItem_PR_real;
+  m_recordItem->choice.real = value;
+}
+
+
+void 
+MeasurementItem::CreateInfoItem(std::string name)
+{
+  m_infoItem = (MeasurementInfoItem_t *)calloc(1, sizeof(MeasurementInfoItem_t));
+
+  // ① measType 채우기
+  m_infoItem->measType.present = MeasurementType_PR_measName;
+  OCTET_STRING_fromString(&m_infoItem->measType.choice.measName, name.c_str());
+
+  // ② labelInfoList(noLabel) 같은 것도 여기서 같이 세팅
+  LabelInfoItem_t *labelItem =
+      (LabelInfoItem_t *)calloc(1, sizeof(LabelInfoItem_t));
+
+  MeasurementLabel_t *label =
+      (MeasurementLabel_t *)calloc(1, sizeof(MeasurementLabel_t));
+
+  label->noLabel = (long *)calloc(1, sizeof(long));
+  *label->noLabel = 0;
+
+  labelItem->measLabel = *label;
+  ASN_SEQUENCE_ADD(&m_infoItem->labelInfoList.list, labelItem);
+}
+
+//=============================================
 KpmIndicationHeader::KpmIndicationHeader (GlobalE2nodeType nodeType,
                                           KpmRicIndicationHeaderValues values)
 {
@@ -243,15 +331,9 @@ KpmIndicationMessage::KpmIndicationMessage (KpmIndicationMessageValues values, c
 {
   E2SM_KPM_IndicationMessage_t* descriptor = (E2SM_KPM_IndicationMessage_t*)calloc(1, sizeof(*descriptor));
   CheckConstraints(values);
-  FillAndEncodeKpmIndicationMessage(descriptor, values, format_type); //E2SM_KPM_INDICATION_MESSAGE_FORMART1
-  ASN_STRUCT_FREE(asn_DEF_E2SM_KPM_IndicationMessage, descriptor);
-  /*
-  E2SM_KPM_IndicationMessage_t* descriptor3 = (E2SM_KPM_IndicationMessage_t*)calloc(1, sizeof(*descriptor3));
-  CheckConstraints(values);
-  NS_LOG_DEBUG ("Make UE KPI Massage");
-  FillAndEncodeKpmIndicationMessage(descriptor3, values, E2SM_KPM_INDICATION_MESSAGE_FORMART3); //E2SM_KPM_INDICATION_MESSAGE_FORMART1
-  ASN_STRUCT_FREE(asn_DEF_E2SM_KPM_IndicationMessage, descriptor3);
-  */
+  FillAndEncodeKpmIndicationMessage(descriptor, values, format_type); 
+  //ASN_STRUCT_FREE(asn_DEF_E2SM_KPM_IndicationMessage, descriptor);
+  //free(descriptor);
 }
 
 KpmIndicationMessage::~KpmIndicationMessage ()
@@ -263,7 +345,6 @@ KpmIndicationMessage::~KpmIndicationMessage ()
 void
 KpmIndicationMessage::CheckConstraints (KpmIndicationMessageValues values)
 {
-  //NS_LOG_DEBUG ("m_cellObjectId=" << values.m_cellObjectId);
 }
 
 typedef struct
@@ -333,336 +414,128 @@ KpmIndicationMessage::Encode (E2SM_KPM_IndicationMessage_t *descriptor)
 std::pair<MeasurementInfoItem_t *, MeasurementDataItem_t *>
 KpmIndicationMessage::getMesInfoItem (const Ptr<MeasurementItem> &mesItem)
 {
+    // ---------------------------------------------------------
+    // 1) Obtain name / value from input
+    // ---------------------------------------------------------
+    MeasurementRecordItem_t *recordItem = mesItem->GetRecordItem();
+    MeasurementInfoItem_t   *infoItem   = mesItem->GetInfoItem();
 
-  // // 1. Adding a measurement values(item) to the packet.
-  //MeasurementDataItem_t *measureDataItem = nullptr;
-
-  auto item = mesItem->GetValue ();
-
-  std::string measName;
-  if (item.pmType.present == MeasurementType_PR_measName) {
-      measName = std::string(
-          (char *)item.pmType.choice.measName.buf,
-          item.pmType.choice.measName.size);
-  } else {
-      NS_LOG_WARN("MeasurementType is not measName, skip");
-      return {nullptr, nullptr};
-  }
-  MeasurementType_t *measType =
-      (MeasurementType_t *)calloc(1, sizeof(MeasurementType_t));
-
-  measType->present = MeasurementType_PR_measName;
-  OCTET_STRING_fromBuf(&measType->choice.measName,
-                        measName.c_str(),
-                        measName.size());
-
-  MeasurementDataItem_t *measDataItem = nullptr;
-
-    switch (item.pmVal.present)
+    if (!recordItem || !infoItem)
     {
-    case MeasurementValue_PR_valueInt:
-        measDataItem = getMesDataItem((double)item.pmVal.choice.valueInt);
-        break;
-
-    case MeasurementValue_PR_valueReal:
-        measDataItem = getMesDataItem(item.pmVal.choice.valueReal);
-        break;
-
-    default:
-        NS_LOG_WARN("Unsupported MeasurementValue type");
+        NS_LOG_WARN("MeasurementItemV2 returned null record or info");
         return {nullptr, nullptr};
     }
 
-    // ---------------------------------------------
-    // 3) MeasurementLabel 생성 (KPM 표준)
-    //    noLabel = true 만 설정
-    // ---------------------------------------------
-    MeasurementLabel_t *measLabel =
-        (MeasurementLabel_t *)calloc(1, sizeof(MeasurementLabel_t));
+     // ---------------------------------------------------------
+    // 2) Create MeasurementDataItem_t (KPMv2)
+    // ---------------------------------------------------------
+    MeasurementDataItem_t *dataItem =
+        (MeasurementDataItem_t *)calloc(1, sizeof(MeasurementDataItem_t));
 
-    measLabel->noLabel = (long *)calloc(1, sizeof(long));
-    *measLabel->noLabel = 0;
+    if (!dataItem)
+    {
+        NS_LOG_ERROR("calloc failed for MeasurementDataItem");
+        return {nullptr, nullptr};
+    }
 
+    ASN_SEQUENCE_ADD(&dataItem->measRecord.list, recordItem);
+
+
+    // ---------------------------------------------------------
+    // KPM v2에서는 MeasurementLabel → LabelInfoItem_t 로 구성됨
+    // 이 예제에서는 noLabel = true 로 설정
+    // ---------------------------------------------------------
     LabelInfoItem_t *labelItem =
         (LabelInfoItem_t *)calloc(1, sizeof(LabelInfoItem_t));
 
-    labelItem->measLabel = *measLabel;
+    MeasurementLabel_t *label =
+        (MeasurementLabel_t *)calloc(1, sizeof(MeasurementLabel_t));
 
-    LabelInfoList_t *labelList =
-        (LabelInfoList_t *)calloc(1, sizeof(LabelInfoList_t));
+    label->noLabel = (long *)calloc(1, sizeof(long));
+    *label->noLabel = 0;
 
-    ASN_SEQUENCE_ADD(&labelList->list, labelItem);
+    labelItem->measLabel = *label;
 
-    // ---------------------------------------------
-    // 4) MeasurementInfoItem 생성
-    // ---------------------------------------------
-    MeasurementInfoItem_t *infoItem =
-        (MeasurementInfoItem_t *)calloc(1, sizeof(MeasurementInfoItem_t));
+    ASN_SEQUENCE_ADD(&infoItem->labelInfoList.list, labelItem);
 
-    infoItem->measType = *measType;
-    infoItem->labelInfoList = *labelList;
-
-    return {infoItem, measDataItem};
+    // ---------------------------------------------------------
+    // 최종 반환: (MeasurementInfoItem_t*, MeasurementDataItem_t*)
+    // ---------------------------------------------------------
+    return {infoItem, dataItem};
+  }
 
 
-  /*
-  *measurmentType = item.pmType;
-
-  if (item.pmType.present == MeasurementType_PR_measName)
-    {
-      switch (item.pmVal.present)
-        {
-          case MeasurementValue_PR_NOTHING: {
-            NS_LOG_INFO ("\n MeasurementValue_PR_NOTHING");
-            break;
-          }
-          case MeasurementValue_PR_valueInt: {
-            NS_LOG_INFO ("\n 	MeasurementValue_PR_valueInt" << item.pmVal.choice.valueInt);
-            measureDataItem = getMesDataItem (static_cast<double> (item.pmVal.choice.valueInt));
-            break;
-          }
-          case MeasurementValue_PR_valueReal: {
-            NS_LOG_INFO ("\n MeasurementValue_PR_valueReal" << item.pmVal.choice.valueReal);
-            measureDataItem = getMesDataItem (item.pmVal.choice.valueReal);
-            break;
-          }
-          case MeasurementValue_PR_noValue: {
-            NS_LOG_INFO ("\n MeasurementValue_PR_noValue" << item.pmVal.choice.noValue);
-            break;
-          }
-          case MeasurementValue_PR_valueRRC: {
-            // LabelInfoList_t *labelInfoolist = (LabelInfoList_t *) calloc (1, sizeof (LabelInfoList_t));
-
-            auto measName =
-                std::string (reinterpret_cast<const char *> (item.pmType.choice.measName.buf),
-                             item.pmType.choice.measName.size);
-            NS_LOG_INFO ("\n 	item.pmType.choice.measName" << measName);
-
-            // Fill Neighbours cells of 5G, MeasResultNeighCells_PR_measResultListNR
-            L3_RRC_Measurements *rrc = item.pmVal.choice.valueRRC;
-
-            if (measName == "HO.TrgtCellQual.RS-SINR.UEID")
-              {
-                if (rrc->measResultNeighCells != nullptr &&
-                    rrc->measResultNeighCells->present == MeasResultNeighCells_PR_measResultListNR)
-                  {
-                    assert (rrc->measResultNeighCells->choice.measResultListNR != nullptr);
-                    try
-                      {
-                        if (rrc->measResultNeighCells->choice.measResultListNR->list.count > 0)
-                          {
-                            MeasResultListNR *_measResultListNR =
-                                rrc->measResultNeighCells->choice.measResultListNR;
-                            measureDataItem = getMesDataItem (_measResultListNR);
-                          }
-
-                    } catch (const std::exception &e)
-                      {
-                        std::cerr << "Error is" << e.what () << '\n';
-                    }
-                  }
-              }
-            else if (measName == "HO.SrcCellQual.RS-SINR.UEID")
-              {
-                if (rrc->servingCellMeasurements != nullptr &&
-                    rrc->servingCellMeasurements->present ==
-                        ServingCellMeasurements_PR_nr_measResultServingMOList)
-                  {
-                    assert (rrc->servingCellMeasurements->choice.nr_measResultServingMOList !=
-                            nullptr);
-                    try
-                      {
-                        if (rrc->servingCellMeasurements->choice.nr_measResultServingMOList->list
-                                .count > 0)
-                          {
-                            MeasResultServMOList *_MeasResultServMO =
-                                rrc->servingCellMeasurements->choice.nr_measResultServingMOList;
-                            measureDataItem = getMesDataItem (_MeasResultServMO);
-                          }
-                    } catch (const std::exception &e)
-                      {
-                        std::cerr << "Error is" << e.what () << '\n';
-                    }
-                  }
-              }
-            else
-              {
-                NS_LOG_INFO ("\n 	L3_RRC_Measurement but not handled, measName" << measName);
-              }
-
-            break;
-          }
-          default: {
-            break;
-          }
-        }
-    }
-  else
-    {
-      NS_LOG_INFO ("\n 	item.pmType.choice.measID" << item.pmType.choice.measID);
-    }
-
-  MeasurementLabel_t *measure_label =
-      (MeasurementLabel_t *) calloc (1, sizeof (MeasurementLabel_t));
-  
-  measure_label->noLabel = (long *) malloc (sizeof (long));
-  assert (measure_label->noLabel != NULL && "Memory exhausted");
-  *measure_label->noLabel = 0;
- 
-  LabelInfoItem_t *LabelInfoItem = (LabelInfoItem_t *) calloc (1, sizeof (LabelInfoItem_t));
-  LabelInfoItem->measLabel = *measure_label;
-  LabelInfoList_t *labelInfoolist = (LabelInfoList_t *) calloc (1, sizeof (LabelInfoList_t));
-  ASN_SEQUENCE_ADD (&labelInfoolist->list, LabelInfoItem);
-
-  MeasurementInfoItem_t *infoItem =
-      (MeasurementInfoItem_t *) calloc (1, sizeof (MeasurementInfoItem_t));
-
-  infoItem->labelInfoList = *labelInfoolist;
-  infoItem->measType = *measurmentType;
-
-  return std::make_pair (infoItem, measureDataItem);
-  */
-}
 
 MeasurementDataItem_t *
 KpmIndicationMessage::getMesDataItem (const double &realVal)
 {
+  // 1. MeasurementDataItem_t 자체를 먼저 생성
+  MeasurementDataItem_t *measure_data_item =
+      (MeasurementDataItem_t *)calloc(1, sizeof(MeasurementDataItem_t));
+  if (!measure_data_item)
+    {
+      NS_LOG_ERROR("calloc failed for MeasurementDataItem_t");
+      return nullptr;
+    }
 
-  // 1. Adding a measurement values(item) to the packet.
-  MeasurementRecord_t *measure_record =
-      (MeasurementRecord_t *) calloc (1, sizeof (MeasurementRecord_t));
-
+  // 2. MeasurementRecordItem_t 생성
   MeasurementRecordItem_t *measure_record_item =
-      (MeasurementRecordItem_t *) calloc (1, sizeof (MeasurementRecordItem_t));
+      (MeasurementRecordItem_t *)calloc(1, sizeof(MeasurementRecordItem_t));
+  if (!measure_record_item)
+    {
+      NS_LOG_ERROR("calloc failed for MeasurementRecordItem_t");
+      ASN_STRUCT_FREE(asn_DEF_MeasurementDataItem, measure_data_item);
+      return nullptr;
+    }
 
   measure_record_item->present = MeasurementRecordItem_PR_real;
   measure_record_item->choice.real = realVal;
 
-  // Stream measurement records to list.
-  ASN_SEQUENCE_ADD (&measure_record->list, measure_record_item);
-
-  MeasurementDataItem_t *measure_data_item =
-      (MeasurementDataItem_t *) calloc (1, sizeof (MeasurementDataItem_t));
-
-  measure_data_item->measRecord = *measure_record;
+  // 3. MeasurementDataItem_t 안의 measRecord.list 에 직접 추가
+  if (ASN_SEQUENCE_ADD(&measure_data_item->measRecord.list, measure_record_item) != 0)
+    {
+      NS_LOG_ERROR("ASN_SEQUENCE_ADD failed in getMesDataItem");
+      ASN_STRUCT_FREE(asn_DEF_MeasurementRecordItem, measure_record_item);
+      ASN_STRUCT_FREE(asn_DEF_MeasurementDataItem, measure_data_item);
+      return nullptr;
+    }
 
   return measure_data_item;
 }
 
 MeasurementDataItem_t *
-KpmIndicationMessage::getMesDataItem (const MeasResultServMOList *_MeasResultServMOList)
+KpmIndicationMessage::getMesDataItem (long intVal)
 {
-
-  MeasurementRecord_t *measure_record =
-      (MeasurementRecord_t *) calloc (1, sizeof (MeasurementRecord_t));
-
   MeasurementDataItem_t *measure_data_item =
-      (MeasurementDataItem_t *) calloc (1, sizeof (MeasurementDataItem_t));
-
-  for (int i = 0; i < _MeasResultServMOList->list.count; i++)
+      (MeasurementDataItem_t *)calloc(1, sizeof(MeasurementDataItem_t));
+  if (!measure_data_item)
     {
-      MeasurementRecordItem_t *measure_record_item1 =
-          (MeasurementRecordItem_t *) calloc (1, sizeof (MeasurementRecordItem_t));
-      measure_record_item1->present = MeasurementRecordItem_PR_integer;
-      measure_record_item1->choice.integer =
-          static_cast<unsigned long> (_MeasResultServMOList->list.array[i]->servCellId);
-
-      MeasurementRecordItem_t *measure_record_item2 =
-          (MeasurementRecordItem_t *) calloc (1, sizeof (MeasurementRecordItem_t));
-      measure_record_item2->present = MeasurementRecordItem_PR_integer;
-      measure_record_item2->choice.integer = static_cast<unsigned long> (
-          *(_MeasResultServMOList->list.array[i]->measResultServingCell.physCellId));
-
-      MeasurementRecordItem_t *measure_record_item3 =
-          (MeasurementRecordItem_t *) calloc (1, sizeof (MeasurementRecordItem_t));
-      measure_record_item3->present = MeasurementRecordItem_PR_real;
-      measure_record_item3->choice.real =
-          *(_MeasResultServMOList->list.array[i]
-                ->measResultServingCell.measResult.cellResults.resultsSSB_Cell->sinr);
-
-      // Stream measurement records to list.
-      ASN_SEQUENCE_ADD (&measure_record->list, measure_record_item1);
-      ASN_SEQUENCE_ADD (&measure_record->list, measure_record_item2);
-      ASN_SEQUENCE_ADD (&measure_record->list, measure_record_item3);
+      NS_LOG_ERROR("calloc failed for MeasurementDataItem_t");
+      return nullptr;
     }
 
-  measure_data_item->measRecord = *measure_record;
+  MeasurementRecordItem_t *measure_record_item =
+      (MeasurementRecordItem_t *)calloc(1, sizeof(MeasurementRecordItem_t));
+  if (!measure_record_item)
+    {
+      NS_LOG_ERROR("calloc failed for MeasurementRecordItem_t");
+      ASN_STRUCT_FREE(asn_DEF_MeasurementDataItem, measure_data_item);
+      return nullptr;
+    }
+
+  measure_record_item->present = MeasurementRecordItem_PR_integer;
+  measure_record_item->choice.integer = intVal;
+
+  if (ASN_SEQUENCE_ADD(&measure_data_item->measRecord.list, measure_record_item) != 0)
+    {
+      NS_LOG_ERROR("ASN_SEQUENCE_ADD failed in getMesDataItem(int)");
+      ASN_STRUCT_FREE(asn_DEF_MeasurementRecordItem, measure_record_item);
+      ASN_STRUCT_FREE(asn_DEF_MeasurementDataItem, measure_data_item);
+      return nullptr;
+    }
 
   return measure_data_item;
 }
-
-MeasurementDataItem_t *
-KpmIndicationMessage::getMesDataItem (const MeasResultListNR *_measResultListNR)
-{
-
-  MeasurementRecord_t *measure_record =
-      (MeasurementRecord_t *) calloc (1, sizeof (MeasurementRecord_t));
-
-  MeasurementDataItem_t *measure_data_item =
-      (MeasurementDataItem_t *) calloc (1, sizeof (MeasurementDataItem_t));
-
-  for (int i = 0; i < _measResultListNR->list.count; i++)
-    {
-      MeasurementRecordItem_t *measure_record_item2 =
-          (MeasurementRecordItem_t *) calloc (1, sizeof (MeasurementRecordItem_t));
-      measure_record_item2->present = MeasurementRecordItem_PR_integer;
-      measure_record_item2->choice.integer = *(_measResultListNR->list.array[i]->physCellId);
-
-      MeasurementRecordItem_t *measure_record_item =
-          (MeasurementRecordItem_t *) calloc (1, sizeof (MeasurementRecordItem_t));
-
-      measure_record_item->present = MeasurementRecordItem_PR_real;
-      measure_record_item->choice.real =
-          *(_measResultListNR->list.array[i]
-                ->measResult.cellResults.resultsSSB_Cell->sinr); //(rand() % 256) + 0.1;
-
-      // Stream measurement records to list.
-      ASN_SEQUENCE_ADD (&measure_record->list, measure_record_item2);
-      ASN_SEQUENCE_ADD (&measure_record->list, measure_record_item);
-    }
-
-  measure_data_item->measRecord = *measure_record;
-
-  return measure_data_item;
-}
-
-// E-UTRA is the air interface of 3rd Generation Partnership Project (3GPP)
-// Long Term Evolution (LTE) upgrade path for mobile networks.
-
-// ueVal->AddItem<Ptr<L3RrcMeasurements>> ("HO.SrcCellQual.RS-SINR.UEID", l3RrcMeasurementServing);
-// ueVal->AddItem<Ptr<L3RrcMeasurements>> ("HO.TrgtCellQual.RS-SINR.UEID", l3RrcMeasurementNeigh);
-// RIC Style 4 cellID, UserID, SINR Map
-// Event trigger - PrbUsage
-// 0.371 enbdev 2 UE 3 L3 neigh 3 SINR -3.92736 sinr encoded 38 first insert
-// 0.371 enbdev 2 UE 3 L3 neigh 4 SINR -11.9135 sinr encoded 22 first insert
-// 0.371 enbdev 2 UE 4 L3 serving SINR -13.7703 L3 serving SINR 3gpp 19
-// 0.371 enbdev 2 UE 4 L3 neigh 4 SINR -10.8886 sinr encoded 24 first insert
-// 0.371 enbdev 2 UE 4 L3 neigh 3 SINR -34.2883 sinr encoded 0 first insert
-// 0.371 enbdev 2 UE 1 L3 serving SINR -0.616781 L3 serving SINR 3gpp 45
-// 0.371 enbdev 2 UE 1 L3 neigh 3 SINR -9.88701 sinr encoded 26 first insert
-
-std::string
-servingMsg (const int &cellID, const int &UeID)
-{
-  // 0.371 enbdev 2 UE 3 L3 serving SINR 3.28529 L3 serving SINR 3gpp 53
-  std::ostringstream oss;
-  // L3servingSINR3gpp_cell_XX
-  // L3servingSINR3gpp_cell_XX_UEID_XX
-  oss << "L3servingSINR3gpp_cell_" << cellID << "_UEID_" << UeID;
-  return oss.str ();
-}
-
-std::string
-neighMsg (const int &cellID)
-{
-  // 0.371 enbdev 2 UE 1 L3 neigh 4 SINR -19.4777 sinr encoded 7 first insert
-  std::ostringstream oss;
-  // L3neighSINR_cell_XX
-  oss << "L3neighSINR_cell_" << cellID;
-  // return std::move (oss.str ());
-  return oss.str ();
-}
-
 
 // ==============================================
 // Indication Based Make Format 1 Message
@@ -673,168 +546,77 @@ KpmIndicationMessage::FillKpmIndicationMessageFormat1(
     Ptr<MeasurementItemList> indication,
     const std::string& cellObjectId /* = "" */)
 {
-
   NS_LOG_FUNCTION(this << format << indication << cellObjectId);
 
-  MeasurementData_t *measData = &format->measData;
-
-  // 1) MeasurementInfoList: KPI 정의 목록 (KPI 개수 = items.size())
+  // ---------------------------------------------------------
+  // 1) MeasurementInfoList 생성
+  // ---------------------------------------------------------
   MeasurementInfoList_t *infoList =
-      (MeasurementInfoList_t *)calloc(1, sizeof(*infoList));
+      (MeasurementInfoList_t *)calloc(1, sizeof(MeasurementInfoList_t));
 
   auto items = indication->GetItems();
-  NS_LOG_DEBUG("FillKpmIndicationMessageFormat1(): items=" << items.size()
-                << " cellObjectId=" << cellObjectId);
-    for (const auto &it : items)
-    {
-      auto v = it->GetValue();  // pmType, pmVal 등
 
-      // measType = measName 기반으로 설정
-      if (v.pmType.present != MeasurementType_PR_measName)
+  for (const auto &item : items)
+    {
+      MeasurementInfoItem_t *info = item->GetInfoItem();
+      if (!info)
         {
-          NS_LOG_WARN("KPM: pmType is not measName, skip this item");
+          NS_LOG_WARN("Skipping MeasurementInfoItem: null");
           continue;
         }
 
-      MeasurementInfoItem_t *infoItem =
-          (MeasurementInfoItem_t *)calloc(1, sizeof(*infoItem));
-
-      // MeasurementType(measName)
-      MeasurementType_t *measType =
-          (MeasurementType_t *)calloc(1, sizeof(*measType));
-      measType->present = MeasurementType_PR_measName;
-
-      std::string measName(
-          (char *)v.pmType.choice.measName.buf,
-          v.pmType.choice.measName.size);
-
-      OCTET_STRING_fromBuf(&measType->choice.measName,
-                           measName.c_str(),
-                           measName.size());
-
-      infoItem->measType = *measType;
-
-      // LabelInfoList: 셀 공통 KPI라면 noLabel만 사용
-      MeasurementLabel_t *measLabel =
-          (MeasurementLabel_t *)calloc(1, sizeof(*measLabel));
-      measLabel->noLabel = (long *)calloc(1, sizeof(long));
-      *measLabel->noLabel = 0;
-
-      LabelInfoItem_t *labelItem =
-          (LabelInfoItem_t *)calloc(1, sizeof(*labelItem));
-      labelItem->measLabel = *measLabel;
-
-      LabelInfoList_t *labelList =
-          (LabelInfoList_t *)calloc(1, sizeof(*labelList));
-      ASN_SEQUENCE_ADD(&labelList->list, labelItem);
-
-      infoItem->labelInfoList = *labelList;
-
-      ASN_SEQUENCE_ADD(&infoList->list, infoItem);
-
-      NS_LOG_DEBUG("FillKpmIndicationMessageFormat1(): item Name=" << measName);
+      // labelInfoList는 항상 Sequence이므로 직접 add
+      ASN_SEQUENCE_ADD(&infoList->list, info);
     }
 
-  // KPI 정의가 하나도 없으면 그냥 종료
   if (infoList->list.count == 0)
     {
-      NS_LOG_WARN("KPM: no MeasurementInfoItem built, skip IndicationMessage");
+      NS_LOG_WARN("No MeasurementInfoItem in KPM Format1");
       ASN_STRUCT_FREE(asn_DEF_MeasurementInfoList, infoList);
       return;
     }
 
   format->measInfoList = infoList;
 
-  // 2) MeasurementData: 셀마다 1개의 MeasurementDataItem
-  //    지금은 셀 1개 기준 → dataItem 1개만 생성
+  // ---------------------------------------------------------
+  // 2) MeasurementDataItem 생성 (셀마다 하나)
+  // ---------------------------------------------------------
   MeasurementDataItem_t *dataItem =
-      (MeasurementDataItem_t *)calloc(1, sizeof(*dataItem));
+      (MeasurementDataItem_t *)calloc(1, sizeof(MeasurementDataItem_t));
 
-  // === 2-1. 이 셀의 KPI 값들을 MeasurementRecord로 채움 ===
-  for (const auto &it : items)
+  // 이 셀의 모든 KPI 값(MeasurementRecordItem)을 measRecord.list에 추가
+  for (const auto &item : items)
     {
-      auto v = it->GetValue();
-      MeasurementRecordItem_t *rec =
-    (MeasurementRecordItem_t*)calloc(1, sizeof(*rec));
+      MeasurementRecordItem_t *rec = item->GetRecordItem();
+      NS_LOG_DEBUG("Record present" << rec->present);
 
-      switch (v.pmVal.present)
+      if (!rec)
         {
-        case MeasurementValue_PR_valueInt:
-        rec->present = MeasurementRecordItem_PR_integer;
-        rec->choice.integer = v.pmVal.choice.valueInt;
-        break;
-
-    case MeasurementValue_PR_valueReal:
-        rec->present = MeasurementRecordItem_PR_real;
-        rec->choice.real = v.pmVal.choice.valueReal;
-        break;
-
-    case MeasurementValue_PR_noValue:
-    default:
-        rec->present = MeasurementRecordItem_PR_noValue;
-        // choice 없음
-        break;
-    }
+          NS_LOG_WARN("Skipping MeasurementRecordItem: null");
+          continue;
+        }
 
       ASN_SEQUENCE_ADD(&dataItem->measRecord.list, rec);
     }
 
-  // dataItem 하나 = "이 셀의 모든 KPI 값"
-  ASN_SEQUENCE_ADD(&measData->list, dataItem);
+  // ---------------------------------------------------------
+  // dataItem을 measurementData에 추가
+  // ---------------------------------------------------------
+  ASN_SEQUENCE_ADD(&format->measData.list, dataItem);
 
+  // ---------------------------------------------------------
   // 3) GranularityPeriod 설정
+  // ---------------------------------------------------------
   GranularityPeriod_t *gran =
-      (GranularityPeriod_t *)calloc(1, sizeof(*gran));
-  *gran = 100;  // ms 단위 등, 네 환경에 맞게 조정
+      (GranularityPeriod_t *)calloc(1, sizeof(GranularityPeriod_t));
+  *gran = 100;
 
   format->granulPeriod = gran;
 
-  NS_LOG_DEBUG("FillKpmIndicationMessageFormat1(): "
-               << "measInfo(cnt)=" << format->measInfoList->list.count
-               << " measData(cnt)=" << measData->list.count
-               << " (expected: cells=1, kpis=" << items.size() << ")");
+  NS_LOG_DEBUG("KPMv2 Format1 created: "
+               << "info=" << format->measInfoList->list.count
+               << " record=" << dataItem->measRecord.list.count);
 }
-
-void
-KpmIndicationMessage::FillKpmIndicationMessageFormat3(
-    E2SM_KPM_IndicationMessage_Format3 *fmt3,
-    const KpmIndicationMessageValues &values)
-{
-  NS_LOG_DEBUG("FillKpmIndicationMessageFormat3(): start, UEs=" << values.m_ueIndications.size());
-  for (const auto &ueIndication : values.m_ueIndications)
-  {
-    Ptr<MeasurementItemList> ueList = ueIndication;
-    if (!ueList) {
-      NS_LOG_WARN("FillKpmIndicationMessageFormat3(): null UE indication → creating dummy");
-      ueList = Create<MeasurementItemList>("NO_UE_ID");
-      ueList->AddItem("No Data", 0.0);
-    }
-    
-    UEMeasurementReportItem_t *UE_data = (UEMeasurementReportItem_t*) calloc(1, sizeof(*UE_data));
-    if (!UE_data) {
-      NS_FATAL_ERROR("calloc failed for UE_data");
-    }
-    FillUeID(&UE_data->ueID, ueIndication);
-
-    // JLEE: For handle empty ueIndiation item by injecting dummy item 
-    if (ueList->GetItems().empty()) {
-      NS_LOG_DEBUG("FillKpmIndicationMessageFormat3(): UE has no measurement items → using dummy Format1");
-      ueList->AddItem("DRB.PdcpSduVolumeDl_Filter.UEID", 0.0);
-      ueList->AddItem("Tot.PdcpSduNbrDl.UEID", 0.1);
-      ueList->AddItem("DRB.PdcpSduBitRateDl.UEID", 0.2);
-      ueList->AddItem("DRB.PdcpSduDelayDl.UEID", 0.3);
-      ueList->AddItem("DRB.EstabSucc.5QI.UEID", 0.4);
-      ueList->AddItem("DRB.RelActNbr.5QI.UEID", 0.5);
-
-    }
-    FillKpmIndicationMessageFormat1(&UE_data->measReport, ueList);
-
-    ASN_SEQUENCE_ADD(&fmt3->ueMeasReportList.list, UE_data);
-  }
-  NS_LOG_DEBUG("FillKpmIndicationMessageFormat3(): done, UEs=" << values.m_ueIndications.size());
-}
-
-
 
 std::vector<UeReport>
 KpmIndicationMessage::ExtractUeReports(const KpmIndicationMessageValues &values)
@@ -848,26 +630,32 @@ KpmIndicationMessage::ExtractUeReports(const KpmIndicationMessageValues &values)
 
         for (auto& item : items)
         {
-            auto v = item->GetValue();
-            std::string measName(
-                (char *)v.pmType.choice.measName.buf,
-                v.pmType.choice.measName.size);
-            rep.metricNames.push_back(measName);
+            auto info = item->GetInfoItem();
+            auto rec  = item->GetRecordItem();
 
-            switch (v.pmVal.present)
+            if (!info || !rec)
+                continue;
+
+            std::string measName(
+                (char *)info->measType.choice.measName.buf,
+                info->measType.choice.measName.size);
+
+            rep.metricNames.push_back(measName);
+            switch (rec->present)
             {
-                case MeasurementValue_PR_valueInt:
-                    rep.metricValues.push_back(v.pmVal.choice.valueInt);
+                case MeasurementRecordItem_PR_integer:
+                    rep.metricValues.push_back(rec->choice.integer);
                     break;
-                case MeasurementValue_PR_valueReal:
-                    rep.metricValues.push_back(v.pmVal.choice.valueReal);
+
+                case MeasurementRecordItem_PR_real:
+                    rep.metricValues.push_back(rec->choice.real);
                     break;
+
                 default:
-                    break;
+                    rep.metricValues.push_back(0.0);
             }
         }
 
-        // ❗ UE 하나당 Rep 하나만 push_back
         reports.push_back(rep);
     }
 
@@ -876,7 +664,7 @@ KpmIndicationMessage::ExtractUeReports(const KpmIndicationMessageValues &values)
 
 void
 KpmIndicationMessage::FillKpmIndicationMessageFormat2(
-    E2SM_KPM_IndicationMessage_Format2 *fmt2,
+    E2SM_KPM_IndicationMessage_Format2_t *fmt2,
     const KpmIndicationMessageValues &values)
 {
   NS_LOG_DEBUG("FillKpmIndicationMessageFormat2(): start, UEs="
@@ -891,7 +679,7 @@ KpmIndicationMessage::FillKpmIndicationMessageFormat2(
   if (ueCount == 0)
     {
       NS_LOG_WARN("Format2: no UE reports");
-      return;
+      return;   // fmt2는 빈 상태로 남음 -> 호출측에서 measData.count 체크 필요
     }
 
   int metricCount = ueReports[0].metricNames.size();
@@ -902,366 +690,133 @@ KpmIndicationMessage::FillKpmIndicationMessageFormat2(
     }
 
   // ----------------------------------------------------
-  // (1) measData : KPIMON-GO 호환 Flat 인코딩
-  //
-  //   measData.list.count = 1
-  //   measRecord.list.count = ueCount * metricCount
-  //
-  //   idx = u + m * ueCount  ← KPIMON-GO 방식
+  // 2) MeasurementData: 한 개의 MeasurementDataItem
+  //    - 여기에서만 새 ASN.1 객체를 만들고, 외부 포인터는 절대 쓰지 않음
   // ----------------------------------------------------
-  fmt2->measData.list.count = 1;
-  fmt2->measData.list.size  = 1;
-  fmt2->measData.list.array =
-      (MeasurementDataItem_t **)calloc(1, sizeof(MeasurementDataItem_t *));
-
   MeasurementDataItem_t *dataItem =
-      (MeasurementDataItem_t *)calloc(1, sizeof(MeasurementDataItem_t));
+      (MeasurementDataItem_t *)calloc(1, sizeof(*dataItem));
+  if (!dataItem)
+    {
+      NS_FATAL_ERROR("calloc failed for MeasurementDataItem_t");
+    }
 
-  int totalRecords = ueCount * metricCount;  // Flattened
-  dataItem->measRecord.list.count = totalRecords;
-  dataItem->measRecord.list.size  = totalRecords;
-  dataItem->measRecord.list.array =
-      (MeasurementRecordItem_t **)calloc(totalRecords,
-                                         sizeof(MeasurementRecordItem_t *));
-
+  // metric m, UE u 에 대해 하나의 MeasurementRecordItem 생성 (deep copy)
   for (int m = 0; m < metricCount; ++m)
     {
       for (int u = 0; u < ueCount; ++u)
         {
-          int idx = u + m * ueCount;  // KPIMON-GO column-major rule
-
           MeasurementRecordItem_t *rec =
-              (MeasurementRecordItem_t *)calloc(1, sizeof(MeasurementRecordItem_t));
+              (MeasurementRecordItem_t *)calloc(1, sizeof(*rec));
+          if (!rec)
+            {
+              NS_FATAL_ERROR("calloc failed for MeasurementRecordItem_t");
+            }
 
-          rec->present     = MeasurementRecordItem_PR_real;   // float type
+          rec->present     = MeasurementRecordItem_PR_real;   // double 값 사용
           rec->choice.real = ueReports[u].metricValues[m];
 
-          dataItem->measRecord.list.array[idx] = rec;
+          if (ASN_SEQUENCE_ADD(&dataItem->measRecord.list, rec) != 0)
+            {
+              NS_FATAL_ERROR("ASN_SEQUENCE_ADD failed for measRecord in Format2");
+            }
         }
     }
 
-  fmt2->measData.list.array[0] = dataItem;
-
-  // ----------------------------------------------------
-  // (2) MeasurementCondUEidList
-  //
-  //   KPIMON-GO는 이 필드를 읽지 않지만,
-  //   KPM 표준 준수를 위해 유지한다.
-  // ----------------------------------------------------
-  MeasurementCondUEidList_t *condList = &fmt2->measCondUEidList;
-
-  condList->list.count = metricCount;
-  condList->list.size  = metricCount;
-  condList->list.array =
-      (MeasurementCondUEidItem_t **)calloc(metricCount,
-                                           sizeof(MeasurementCondUEidItem_t *));
-
-  for (int m = 0; m < metricCount; ++m)
+  if (dataItem->measRecord.list.count == 0)
     {
-      MeasurementCondUEidItem_t *item =
-          (MeasurementCondUEidItem_t *)calloc(1, sizeof(MeasurementCondUEidItem_t));
-      condList->list.array[m] = item;
+      NS_LOG_WARN("Format2: dataItem has 0 MeasurementRecordItem, skip");
+      ASN_STRUCT_FREE(asn_DEF_MeasurementDataItem, dataItem);
+      return;
+    }
 
-      // -------- 2-1) MeasurementType: measName --------
-      item->measType.present = MeasurementType_PR_measName;
-      const std::string &metricName = ueReports[0].metricNames[m];
-      OCTET_STRING_fromString(&item->measType.choice.measName, metricName.c_str());
-
-      // -------- 2-2) MatchingCondList (SIZE >=1) --------
-      MatchingCondList_t *mcl = &item->matchingCond;
-      mcl->list.count = 1;
-      mcl->list.size  = 1;
-      mcl->list.array =
-          (MatchingCondItem_t **)calloc(1, sizeof(MatchingCondItem_t *));
-
-      MatchingCondItem_t *mc =
-          (MatchingCondItem_t *)calloc(1, sizeof(MatchingCondItem_t));
-      mcl->list.array[0] = mc;
-
-      mc->present = MatchingCondItem_PR_measLabel;
-      mc->choice.measLabel =
-          (MeasurementLabel_t *)calloc(1, sizeof(MeasurementLabel_t));
-      // MeasurementLabel 내부 OPTIONAL → 비어있어도 표준상 OK
-
-      // -------- 2-3) matchingUEidList OPTIONAL → NULL --------
-      item->matchingUEidList = NULL;
+  if (ASN_SEQUENCE_ADD(&fmt2->measData.list, dataItem) != 0)
+    {
+      NS_FATAL_ERROR("ASN_SEQUENCE_ADD failed for fmt2->measData");
     }
 
   // ----------------------------------------------------
-  // (3) granularityPeriod (optional)
+  // 3) MeasurementCondUEidList: metric 단위 조건/label 정의
+  //    - 이 부분도 모든 ASN.1 객체를 새로 alloc해서 fmt2에만 귀속
+  // ----------------------------------------------------
+  for (int m = 0; m < metricCount; ++m)
+    {
+      MeasurementCondUEidItem_t *item =
+          (MeasurementCondUEidItem_t *)calloc(1, sizeof(*item));
+      if (!item)
+        {
+          NS_FATAL_ERROR("calloc failed for MeasurementCondUEidItem_t");
+        }
+
+      // 3-1) MeasurementType: measName (metric 이름)
+      item->measType.present = MeasurementType_PR_measName;
+      const std::string &metricName = ueReports[0].metricNames[m];
+      if (OCTET_STRING_fromBuf(&item->measType.choice.measName,
+                               metricName.c_str(),
+                               metricName.size()) != 0)
+        {
+          NS_FATAL_ERROR("OCTET_STRING_fromBuf failed for measName in Format2");
+        }
+
+      // 3-2) MatchingCondList: SIZE >= 1
+      MatchingCondItem_t *mci =
+          (MatchingCondItem_t *)calloc(1, sizeof(*mci));
+      if (!mci)
+        {
+          NS_FATAL_ERROR("calloc failed for MatchingCondItem_t");
+        }
+
+      mci->present = MatchingCondItem_PR_measLabel;
+
+      // Label도 완전히 새로운 ASN.1 객체로 할당 (no shallow copy)
+      MeasurementLabel_t *label =
+          (MeasurementLabel_t *)calloc(1, sizeof(*label));
+      if (!label)
+        {
+          NS_FATAL_ERROR("calloc failed for MeasurementLabel_t");
+        }
+
+      label->noLabel = (long *)calloc(1, sizeof(long));
+      if (!label->noLabel)
+        {
+          NS_FATAL_ERROR("calloc failed for label->noLabel");
+        }
+      *label->noLabel = 0; // "noLabel" semantics
+
+      mci->choice.measLabel = label;
+
+      if (ASN_SEQUENCE_ADD(&item->matchingCond.list, mci) != 0)
+        {
+          NS_FATAL_ERROR("ASN_SEQUENCE_ADD failed for matchingCond.list");
+        }
+
+      // matchingUEidList OPTIONAL → 사용 안 함
+      item->matchingUEidList = NULL;
+
+      if (ASN_SEQUENCE_ADD(&fmt2->measCondUEidList.list, item) != 0)
+        {
+          NS_FATAL_ERROR("ASN_SEQUENCE_ADD failed for measCondUEidList");
+        }
+    }
+
+  // ----------------------------------------------------
+  // 4) granularityPeriod 설정
   // ----------------------------------------------------
   GranularityPeriod_t *gran =
-      (GranularityPeriod_t *)calloc(1, sizeof(GranularityPeriod_t));
+      (GranularityPeriod_t *)calloc(1, sizeof(*gran));
+  if (!gran)
+    {
+      NS_FATAL_ERROR("calloc failed for GranularityPeriod_t");
+    }
   *gran = 100; // 100ms
 
   fmt2->granulPeriod = gran;
 
-  NS_LOG_DEBUG("FillKpmIndicationMessageFormat2(): done");
+  NS_LOG_DEBUG("FillKpmIndicationMessageFormat2(): done, measData.count="
+               << fmt2->measData.list.count
+               << ", measCondUEidList.count="
+               << fmt2->measCondUEidList.list.count);
 }
 
-
-/* For V2 But not 호환 kpimon =0go
-void
-KpmIndicationMessage::FillKpmIndicationMessageFormat2(
-    E2SM_KPM_IndicationMessage_Format2 *fmt2,
-    const KpmIndicationMessageValues &values)
-{
-  NS_LOG_DEBUG("FillKpmIndicationMessageFormat2(): start, UEs="
-               << values.m_ueIndications.size());
-
-  // --------------------------
-  // 1) UE report 리스트 추출
-  // --------------------------
-  auto ueReports = ExtractUeReports(values);
-
-  int ueCount = ueReports.size();
-  if (ueCount == 0)
-    {
-      NS_LOG_WARN("Format2: no UE reports");
-      return;
-    }
-
-  int metricCount = ueReports[0].metricNames.size();
-  if (metricCount == 0)
-    {
-      NS_LOG_WARN("Format2: no metrics");
-      return;
-    }
-
-  // ----------------------------------------------------
-  // (1) measData : UE × Metric 매트릭스 구성
-  // ----------------------------------------------------
-  fmt2->measData.list.count = metricCount;
-  fmt2->measData.list.size  = metricCount;
-  fmt2->measData.list.array =
-      (MeasurementDataItem_t **)calloc(metricCount, sizeof(MeasurementDataItem_t *));
-
-  for (int m = 0; m < metricCount; ++m)
-    {
-      MeasurementDataItem_t *dataItem =
-          (MeasurementDataItem_t *)calloc(1, sizeof(MeasurementDataItem_t));
-
-      dataItem->measRecord.list.count = ueCount;
-      dataItem->measRecord.list.size  = ueCount;
-      dataItem->measRecord.list.array =
-          (MeasurementRecordItem_t **)calloc(ueCount, sizeof(MeasurementRecordItem_t *));
-      NS_LOG_DEBUG("FillKpmIndicationMessageFormat2(): UEs=" << ueCount);
-      for (int u = 0; u < ueCount; ++u)
-        {
-          MeasurementRecordItem_t *rec =
-              (MeasurementRecordItem_t *)calloc(1, sizeof(MeasurementRecordItem_t));
-
-          rec->present     = MeasurementRecordItem_PR_real;
-          rec->choice.real = ueReports[u].metricValues[m];
-
-          dataItem->measRecord.list.array[u] = rec;
-        }
-
-      fmt2->measData.list.array[m] = dataItem;
-    }
-
-  // ----------------------------------------------------
-  // (2) MeasurementCondUEidList (KPMv2 규격상 필수)
-  //
-  //   - metricCount 개의 item
-  //   - 각 item에:
-  //       * measType: measName
-  //       * matchingCondList: 최소 1개 (빈 리스트 금지)
-  //       * matchingUEidList: OPTIONAL → NULL 허용
-  // ----------------------------------------------------
-  MeasurementCondUEidList_t *condList = &fmt2->measCondUEidList;
-
-  condList->list.count = metricCount;
-  condList->list.size  = metricCount;
-  condList->list.array =
-      (MeasurementCondUEidItem_t **)calloc(metricCount,
-                                           sizeof(MeasurementCondUEidItem_t *));
-
-  for (int m = 0; m < metricCount; ++m)
-    {
-      MeasurementCondUEidItem_t *item =
-          (MeasurementCondUEidItem_t *)calloc(1, sizeof(MeasurementCondUEidItem_t));
-      condList->list.array[m] = item;
-
-      // -------- 2-1) MeasurementType: measName --------
-      item->measType.present = MeasurementType_PR_measName;
-      const std::string &metricName = ueReports[0].metricNames[m];
-      OCTET_STRING_fromString(&item->measType.choice.measName, metricName.c_str());
-
-      // -------- 2-2) MatchingCondList (SIZE >=1 필수) --------
-      MatchingCondList_t *mcl = &item->matchingCond;
-      mcl->list.count = 1;
-      mcl->list.size  = 1;
-      mcl->list.array =
-          (MatchingCondItem_t **)calloc(1, sizeof(MatchingCondItem_t *));
-
-      MatchingCondItem_t *mc =
-          (MatchingCondItem_t *)calloc(1, sizeof(MatchingCondItem_t));
-      mcl->list.array[0] = mc;
-
-      mc->present = MatchingCondItem_PR_measLabel;
-      mc->choice.measLabel =
-          (MeasurementLabel_t *)calloc(1, sizeof(MeasurementLabel_t));
-      // MeasurementLabel 내부는 전부 OPTIONAL → 빈 calloc 구조체면 OK
-
-      // logicalOR OPTIONAL → NULL 그대로
-
-      // -------- 2-3) matchingUEidList OPTIONAL → NULL --------
-      item->matchingUEidList = NULL;
-    }
-
-  // ----------------------------------------------------
-  // (3) granularityPeriod (optional)
-  // ----------------------------------------------------
-  GranularityPeriod_t *gran =
-      (GranularityPeriod_t *)calloc(1, sizeof(GranularityPeriod_t));
-  *gran = 100; // 100ms
-
-  fmt2->granulPeriod = gran;
-
-  NS_LOG_DEBUG("FillKpmIndicationMessageFormat2(): done");
-}
-*/
-//
-/* For version kpm v3
-void
-KpmIndicationMessage::FillKpmIndicationMessageFormat2(
-    E2SM_KPM_IndicationMessage_Format2 *fmt2,
-    const KpmIndicationMessageValues &values)
-{
-  NS_LOG_DEBUG("FillKpmIndicationMessageFormat2(): start, UEs="
-               << values.m_ueIndications.size());
-
-  auto ueReports = ExtractUeReports(values);
-
-  std::vector<Ptr<MeasurementItemList>> ueInds(
-      values.m_ueIndications.begin(),
-      values.m_ueIndications.end());
-  
-
-  int ueCount = ueReports.size();
-  if (ueCount == 0)
-    {
-      NS_LOG_WARN("Format2: no UE reports");
-      return;
-    }
-
-  int metricCount = ueReports[0].metricNames.size();
-  if (metricCount == 0)
-    {
-      NS_LOG_WARN("Format2: no metrics");
-      return;
-    }
-
-
-  fmt2->measData.list.count = metricCount;
-  fmt2->measData.list.size  = metricCount;
-  fmt2->measData.list.array =
-      (MeasurementDataItem_t **)calloc(metricCount, sizeof(MeasurementDataItem_t *));
-
-  for (int m = 0; m < metricCount; ++m)
-    {
-      MeasurementDataItem_t *dataItem =
-          (MeasurementDataItem_t *)calloc(1, sizeof(MeasurementDataItem_t));
-
-      dataItem->measRecord.list.count = ueCount;
-      dataItem->measRecord.list.size  = ueCount;
-      dataItem->measRecord.list.array =
-          (MeasurementRecordItem_t **)calloc(ueCount, sizeof(MeasurementRecordItem_t *));
-
-      for (int u = 0; u < ueCount; ++u)
-        {
-          MeasurementRecordItem_t *rec =
-              (MeasurementRecordItem_t *)calloc(1, sizeof(MeasurementRecordItem_t));
-
-          rec->present     = MeasurementRecordItem_PR_real;
-          rec->choice.real = ueReports[u].metricValues[m];
-
-          dataItem->measRecord.list.array[u] = rec;
-        }
-
-      fmt2->measData.list.array[m] = dataItem;
-    }
-
-  ///
-    MeasurementCondUEidList_t *condList = &fmt2->measCondUEidList;
-
-
-    condList->list.count = 1;
-    condList->list.size  = 1;
-    condList->list.array =
-        (MeasurementCondUEidItem_t **)calloc(1, sizeof(MeasurementCondUEidItem_t *));
-
-    MeasurementCondUEidItem_t *item =
-        (MeasurementCondUEidItem_t*)calloc(1, sizeof(MeasurementCondUEidItem_t));
-    condList->list.array[0] = item;
-//------------------------------
-// 1. MeasurementType 설정
-//------------------------------
-  item->measType.present = MeasurementType_PR_measName;
-
-  const std::string &firstMetricName = ueReports[0].metricNames[0];
-  OCTET_STRING_fromString(&item->measType.choice.measName,
-                          firstMetricName.c_str());
-
-//------------------------------
-// 2. MatchingCondList 설정
-//------------------------------
-  MatchingCondList_t *mcl = &item->matchingCond;
-  mcl->list.count = 1;
-  mcl->list.size  = 1;
-  mcl->list.array =
-      (MatchingCondItem_t **)calloc(1, sizeof(MatchingCondItem_t *));
-
-  MatchingCondItem_t *mc =
-      (MatchingCondItem_t *)calloc(1, sizeof(MatchingCondItem_t));
-  mcl->list.array[0] = mc;
-
-  mc->matchingCondChoice.present = MatchingCondItem_Choice_PR_measLabel;
-  mc->matchingCondChoice.choice.measLabel =
-      (MeasurementLabel_t *)calloc(1, sizeof(MeasurementLabel_t));
-
-  mc->logicalOR = NULL;  // OPTIONAL
-
-  item->matchingUEidList =
-        (MatchingUEidList_t *)calloc(1, sizeof(MatchingUEidList_t));
-
-    MatchingUEidList_t *ueidList = item->matchingUEidList;
-
-    ueidList->list.count = ueCount;
-    ueidList->list.size  = ueCount;
-    ueidList->list.array =
-        (MatchingUEidItem_t **)calloc(ueCount,
-                                      sizeof(MatchingUEidItem_t *));
-
-    for (int u = 0; u < ueCount; ++u)
-      {
-        MatchingUEidItem_t *ueItem =
-            (MatchingUEidItem_t *)calloc(1, sizeof(MatchingUEidItem_t));
-
-        // UEID_t 한 개를 FillUeID로 채운다.
-        // values.m_ueIndications[u] 가 Ptr<MeasurementItemList> 라고 가정
-        FillUeID(&ueItem->ueID, ueInds[u]);
-
-        ueidList->list.array[u] = ueItem;
-
-      }
-
-    // matchingUEidPerGP 는 OPTIONAL
-    item->matchingUEidPerGP = NULL;
-
-
-  // ----------------------------------------------------
-  // (2) Granularity Period (optional)
-  // ----------------------------------------------------
-  auto *gran = (GranularityPeriod_t *)calloc(1, sizeof(GranularityPeriod_t));
-  *gran      = 100;   // 100 ms (환경에 맞게 바꿔도 됨)
-
-  fmt2->granulPeriod = gran;
-
-  NS_LOG_DEBUG("FillKpmIndicationMessageFormat2(): done");
-}
-*/
 static inline void os_to_ran_ueid_8bytes(const OCTET_STRING_t& os, uint8_t out[8]) {
   const uint64_t FNV_OFFSET = 1469598103934665603ULL;
   const uint64_t FNV_PRIME  = 1099511628211ULL;
@@ -1298,115 +853,101 @@ KpmIndicationMessage::FillUeID (UEID_t *ue_ID, const Ptr<MeasurementItemList> ue
 }
 
 void
-KpmIndicationMessage::FillAndEncodeKpmIndicationMessage (
-    E2SM_KPM_IndicationMessage_t *descriptor, KpmIndicationMessageValues values,
+KpmIndicationMessage::FillAndEncodeKpmIndicationMessage(
+    E2SM_KPM_IndicationMessage_t *descriptor,
+    KpmIndicationMessageValues values,
     const E2SM_KPM_IndicationMessage_FormatType &format_type)
 {
-
-  ASN_STRUCT_RESET(asn_DEF_E2SM_KPM_IndicationMessage, descriptor);
+  // 1) 이전 내용 깨끗이 제거 + 새로 할당
+  ASN_STRUCT_FREE(asn_DEF_E2SM_KPM_IndicationMessage, descriptor);
+  descriptor = (E2SM_KPM_IndicationMessage_t *)calloc(1, sizeof(*descriptor));
+  if (!descriptor)
+    {
+      NS_FATAL_ERROR("calloc failed for E2SM_KPM_IndicationMessage");
+    }
 
   switch (format_type)
     {
-      case E2SM_KPM_INDICATION_MESSAGE_FORMART1: {
-        NS_LOG_DEBUG("Encode E2SM_KPM_I For Cell");
-        
+    case E2SM_KPM_INDICATION_MESSAGE_FORMART1:
+      {
+        NS_LOG_DEBUG("Encode E2SM_KPM_I For Cell (Format1)");
         E2SM_KPM_IndicationMessage_Format1_t *msg_fmt1 =
             (E2SM_KPM_IndicationMessage_Format1_t *)calloc(1, sizeof(*msg_fmt1));
-        if (!msg_fmt1) {
+        if (!msg_fmt1)
+          {
             NS_FATAL_ERROR("calloc failed for msg_fmt1");
-        }
-        // Check Object Cell ID
-        const std::string cellId = values.m_cellObjectId.empty()
-                               ? "NO_CELL_ID" : values.m_cellObjectId;
+          }
 
+        // cell 측정값 확보
+        const std::string cellId =
+            values.m_cellObjectId.empty() ? "NO_CELL_ID" : values.m_cellObjectId;
 
         Ptr<MeasurementItemList> cellItems = values.m_cellMeasurementItems;
         if (!cellItems)
-        {
+          {
             NS_LOG_DEBUG("Creating MeasurementItemList For Cell");
             cellItems = Create<MeasurementItemList>(cellId);
             cellItems->AddItem("DRB.PdcpSduDelayDl", 0.0);
-            cellItems->AddItem("pdcpBytesUl", 0.1);
-            cellItems->AddItem("pdcpBytesDl", 0.2);
-            cellItems->AddItem("numActiveUes", 0.3);
-        }
+            cellItems->AddItem("pdcpBytesUl",        0.1);
+            cellItems->AddItem("pdcpBytesDl",        0.2);
+            cellItems->AddItem("numActiveUes",       0.3);
+          }
 
         FillKpmIndicationMessageFormat1(msg_fmt1, cellItems, cellId);
-        
+
+        // measData가 비어있으면 인코딩 안 함
+        if (msg_fmt1->measData.list.count == 0)
+          {
+            NS_LOG_WARN("Format1: measData is empty, skip encoding");
+            ASN_STRUCT_FREE(asn_DEF_E2SM_KPM_IndicationMessage_Format1, msg_fmt1);
+            return;
+          }
+
         descriptor->indicationMessage_formats.present =
             E2SM_KPM_IndicationMessage__indicationMessage_formats_PR_indicationMessage_Format1;
         descriptor->indicationMessage_formats.choice.indicationMessage_Format1 = msg_fmt1;
         break;
       }
-      case E2SM_KPM_INDICATION_MESSAGE_FORMART2: {
-          E2SM_KPM_IndicationMessage_Format2_t *fmt2 = (E2SM_KPM_IndicationMessage_Format2_t*)calloc(1, sizeof(*fmt2));
 
-          if (!fmt2) { NS_FATAL_ERROR("calloc failed for E2SM_KPM_IndicationMessage_Format2_t");}
+    case E2SM_KPM_INDICATION_MESSAGE_FORMART2:
+      {
+        NS_LOG_DEBUG("Encode E2SM_KPM_I For UE (Format2)");
 
-          if (!values.m_ueIndications.empty()) {
-              FillKpmIndicationMessageFormat2 (fmt2, values);
-          } else {
-        }
+        E2SM_KPM_IndicationMessage_Format2_t  *fmt2 =
+            (E2SM_KPM_IndicationMessage_Format2_t *)calloc(1, sizeof(*fmt2));
+        if (!fmt2)
+          {
+            NS_FATAL_ERROR("calloc failed for E2SM_KPM_IndicationMessage_Format2_t");
+          }
+
+        if (!values.m_ueIndications.empty())
+          {
+            FillKpmIndicationMessageFormat2(fmt2, values);
+          }
+
+        // measData가 비면 인코딩하지 않고 정리
+        if (fmt2->measData.list.count == 0)
+          {
+            NS_LOG_WARN("Format2: measData is empty, skip encoding");
+            ASN_STRUCT_FREE(asn_DEF_E2SM_KPM_IndicationMessage_Format2, fmt2);
+            return;
+          }
 
         descriptor->indicationMessage_formats.present =
             E2SM_KPM_IndicationMessage__indicationMessage_formats_PR_indicationMessage_Format2;
         descriptor->indicationMessage_formats.choice.indicationMessage_Format2 = fmt2;
         break;
-
-
       }
-      /* For kpm V3
-      case E2SM_KPM_INDICATION_MESSAGE_FORMART3: {
-          NS_LOG_DEBUG("Encode E2SM_KPM_I For UE");
 
-          E2SM_KPM_IndicationMessage_Format3_t *fmt3 = (E2SM_KPM_IndicationMessage_Format3_t*)calloc(1, sizeof(*fmt3));
-
-          if (!fmt3) { NS_FATAL_ERROR("calloc failed for E2SM_KPM_IndicationMessage_Format3_t");}
-
-          if (!values.m_ueIndications.empty()) {
-              FillKpmIndicationMessageFormat3 (fmt3, values);
-          } else {
-          // create dumy indication message
-          UEMeasurementReportItem_t *UE_data = (UEMeasurementReportItem_t*)calloc(1, sizeof(*UE_data));
-          UEID_GNB_t *gnb_asn = (UEID_GNB_t*)calloc(1, sizeof(*gnb_asn));
-          gnb_asn->amf_UE_NGAP_ID.buf = (uint8_t*)calloc(5, sizeof(uint8_t));
-          asn_ulong2INTEGER(&gnb_asn->amf_UE_NGAP_ID, 1);
-          gnb_asn->ran_UEID = (RANUEID_t*)calloc(1, sizeof(*gnb_asn->ran_UEID));
-          gnb_asn->ran_UEID->buf  = (uint8_t*)calloc(8, sizeof(uint8_t));
-          gnb_asn->ran_UEID->size = 8;
-          UE_data->ueID.present      = UEID_PR_gNB_UEID;
-          UE_data->ueID.choice.gNB_UEID = gnb_asn;
-          
-          Ptr<MeasurementItemList> dummyUeList = Create<MeasurementItemList>("UE_DUMMY_ID");
-          dummyUeList->AddItem("DRB.PdcpSduVolumeDl_Filter.UEID", 0.0);
-          dummyUeList->AddItem("Tot.PdcpSduNbrDl.UEID", 0.0);
-          dummyUeList->AddItem("DRB.PdcpSduBitRateDl.UEID", 0.0);
-          dummyUeList->AddItem("DRB.PdcpSduDelayDl.UEID", 0.0);
-          dummyUeList->AddItem("RB.EstabSucc.5QI.UEID", 0.0);
-          dummyUeList->AddItem("DRB.RelActNbr.5QI.UEID", 0.0);
-          FillKpmIndicationMessageFormat1(&UE_data->measReport, dummyUeList); // To be update from 1028
-          ASN_SEQUENCE_ADD(&fmt3->ueMeasReportList.list, UE_data);
-        }
-
-        descriptor->indicationMessage_formats.present =
-            E2SM_KPM_IndicationMessage__indicationMessage_formats_PR_indicationMessage_Format3;
-        descriptor->indicationMessage_formats.choice.indicationMessage_Format3 = fmt3;
-        break;
-      }
-        */
     default:
-      break;
+      NS_LOG_WARN("Unknown KPM IndicationMessage format_type");
+      return;
     }
-  //NS_LOG_DEBUG(">>> present = " << descriptor->indicationMessage_formats.present);
-  //NS_LOG_DEBUG(">>> fmt3 ptr = " << (void*)descriptor->indicationMessage_formats.choice.indicationMessage_Format3);
-  //NS_LOG_DEBUG(">>> ueMeasReportList count = "
-  //  << descriptor->indicationMessage_formats.choice.indicationMessage_Format3->ueMeasReportList.list.count);
 
-  //NS_LOG_DEBUG (xer_fprint (stderr, &asn_DEF_E2SM_KPM_IndicationMessage, descriptor));
-  Encode (descriptor);
-  printf (" \n *** Done Encoding INDICATION Message ****** \n ");
+  // 3) 실제 인코딩
+  Encode(descriptor);
+  printf("\n *** Done Encoding INDICATION Message ****** \n");
 }
-
 
 MeasurementItemList::MeasurementItemList ()
 {
@@ -1431,158 +972,6 @@ MeasurementItemList::GetId ()
 {
   NS_ABORT_IF (m_id == NULL);
   return m_id->GetValue ();
-}
-
-// To be deleted the blow function
-void
-KpmIndicationMessage::FillPmContainer (PF_Container_t *ranContainer, Ptr<PmContainerValues> values)
-{
-  Ptr<OCuUpContainerValues> cuUpVal = DynamicCast<OCuUpContainerValues> (values);
-  Ptr<OCuCpContainerValues> cuCpVal = DynamicCast<OCuCpContainerValues> (values);
-  Ptr<ODuContainerValues> duVal = DynamicCast<ODuContainerValues> (values);
-
-  if (cuUpVal)
-    {
-      FillOCuUpContainer (ranContainer, cuUpVal);
-    }
-  else if (cuCpVal)
-    {
-      FillOCuCpContainer (ranContainer, cuCpVal);
-    }
-  else if (duVal)
-    {
-      FillODuContainer (ranContainer, duVal);
-    }
-  else
-    {
-      NS_FATAL_ERROR ("Unknown PM Container type");
-    }
-}
-// To be deleted
-void
-KpmIndicationMessage::FillOCuUpContainer (PF_Container_t *ranContainer,
-                                          Ptr<OCuUpContainerValues> values)
-{
-  OCUUP_PF_Container_t *ocuup = (OCUUP_PF_Container_t *) calloc (1, sizeof (OCUUP_PF_Container_t));
-  PF_ContainerListItem_t *pcli =
-      (PF_ContainerListItem_t *) calloc (1, sizeof (PF_ContainerListItem_t));
-  pcli->interface_type = NI_Type_x2_u;
-
-  CUUPMeasurement_Container_t *cuuppmc =
-      (CUUPMeasurement_Container_t *) calloc (1, sizeof (CUUPMeasurement_Container_t));
-  PlmnID_Item_t *plmnItem = (PlmnID_Item_t *) calloc (1, sizeof (PlmnID_Item_t));
-  Ptr<OctetString> plmnidstr = Create<OctetString> (values->m_plmId, 3);
-  plmnItem->pLMN_Identity = plmnidstr->GetValue ();
-
-  EPC_CUUP_PM_Format_t *cuuppmf =
-      (EPC_CUUP_PM_Format_t *) calloc (1, sizeof (EPC_CUUP_PM_Format_t));
-  plmnItem->cu_UP_PM_EPC = cuuppmf;
-  PerQCIReportListItemFormat_t *pqrli =
-      (PerQCIReportListItemFormat_t *) calloc (1, sizeof (PerQCIReportListItemFormat_t));
-  pqrli->drbqci = 0;
-
-  INTEGER_t *pDCPBytesDL = (INTEGER_t *) calloc (1, sizeof (INTEGER_t));
-  INTEGER_t *pDCPBytesUL = (INTEGER_t *) calloc (1, sizeof (INTEGER_t));
-
-  asn_long2INTEGER (pDCPBytesDL, values->m_pDCPBytesDL);
-  asn_long2INTEGER (pDCPBytesUL, values->m_pDCPBytesUL);
-
-  pqrli->pDCPBytesDL = pDCPBytesDL;
-  pqrli->pDCPBytesUL = pDCPBytesUL;
-
-  ASN_SEQUENCE_ADD (&cuuppmf->perQCIReportList_cuup.list, pqrli);
-
-  ASN_SEQUENCE_ADD (&cuuppmc->plmnList.list, plmnItem);
-
-  pcli->o_CU_UP_PM_Container = *cuuppmc;
-  ASN_SEQUENCE_ADD (&ocuup->pf_ContainerList, pcli);
-  ranContainer->choice.oCU_UP = ocuup;
-  ranContainer->present = PF_Container_PR_oCU_UP;
-
-  free (cuuppmc);
-}
-// To be deleted
-
-void
-KpmIndicationMessage::FillOCuCpContainer (PF_Container_t *ranContainer,
-                                          Ptr<OCuCpContainerValues> values)
-{
-  OCUCP_PF_Container_t *ocucp = (OCUCP_PF_Container_t *) calloc (1, sizeof (OCUCP_PF_Container_t));
-  long *numActiveUes = (long *) calloc (1, sizeof (long));
-  *numActiveUes = long (values->m_numActiveUes);
-  ocucp->cu_CP_Resource_Status.numberOfActive_UEs = numActiveUes;
-  ranContainer->choice.oCU_CP = ocucp;
-  ranContainer->present = PF_Container_PR_oCU_CP;
-}
-// To be deleted
-
-void
-KpmIndicationMessage::FillODuContainer (PF_Container_t *ranContainer,
-                                        Ptr<ODuContainerValues> values)
-{
-  ODU_PF_Container_t *odu = (ODU_PF_Container_t *) calloc (1, sizeof (ODU_PF_Container_t));
-
-  for (auto cellReport : values->m_cellResourceReportItems)
-    {
-      NS_LOG_LOGIC ("O-DU: Add Cell Resource Report Item");
-      CellResourceReportListItem_t *crrli =
-          (CellResourceReportListItem_t *) calloc (1, sizeof (CellResourceReportListItem_t));
-
-      Ptr<OctetString> plmnid = Create<OctetString> (cellReport->m_plmId, 3);
-      Ptr<NrCellId> nrcellid = Create<NrCellId> (cellReport->m_nrCellId);
-      crrli->nRCGI.pLMN_Identity = plmnid->GetValue ();
-      crrli->nRCGI.nRCellIdentity = nrcellid->GetValue ();
-
-      long *dlAvailablePrbs = (long *) calloc (1, sizeof (long));
-      *dlAvailablePrbs = cellReport->dlAvailablePrbs;
-      crrli->dl_TotalofAvailablePRBs = dlAvailablePrbs;
-
-      long *ulAvailablePrbs = (long *) calloc (1, sizeof (long));
-      *ulAvailablePrbs = cellReport->ulAvailablePrbs;
-      crrli->ul_TotalofAvailablePRBs = ulAvailablePrbs;
-      ASN_SEQUENCE_ADD (&odu->cellResourceReportList.list, crrli);
-
-      for (auto servedPlmnCell : cellReport->m_servedPlmnPerCellItems)
-        {
-          NS_LOG_LOGIC ("O-DU: Add Served Plmn Per Cell Item");
-          ServedPlmnPerCellListItem_t *sppcl =
-              (ServedPlmnPerCellListItem_t *) calloc (1, sizeof (ServedPlmnPerCellListItem_t));
-          Ptr<OctetString> servedPlmnId = Create<OctetString> (servedPlmnCell->m_plmId, 3);
-          sppcl->pLMN_Identity = servedPlmnId->GetValue ();
-
-          EPC_DU_PM_Container_t *edpc =
-              (EPC_DU_PM_Container_t *) calloc (1, sizeof (EPC_DU_PM_Container_t));
-
-          for (auto perQciReportItem : servedPlmnCell->m_perQciReportItems)
-            {
-              NS_LOG_LOGIC ("O-DU: Add Per QCI Report Item");
-              PerQCIReportListItem_t *pqrl =
-                  (PerQCIReportListItem_t *) calloc (1, sizeof (PerQCIReportListItem_t));
-              pqrl->qci = perQciReportItem->m_qci;
-
-              NS_ABORT_MSG_IF ((perQciReportItem->m_dlPrbUsage < 0) |
-                                   (perQciReportItem->m_dlPrbUsage > 100),
-                               "As per ASN definition, dl_PRBUsage should be between 0 and 100");
-              long *dlUsedPrbs = (long *) calloc (1, sizeof (long));
-              *dlUsedPrbs = perQciReportItem->m_dlPrbUsage;
-              pqrl->dl_PRBUsage = dlUsedPrbs;
-              NS_LOG_LOGIC ("DL PRBs " << *dlUsedPrbs);
-
-              NS_ABORT_MSG_IF ((perQciReportItem->m_ulPrbUsage < 0) |
-                                   (perQciReportItem->m_ulPrbUsage > 100),
-                               "As per ASN definition, ul_PRBUsage should be between 0 and 100");
-              long *ulUsedPrbs = (long *) calloc (1, sizeof (long));
-              *ulUsedPrbs = perQciReportItem->m_ulPrbUsage;
-              pqrl->ul_PRBUsage = ulUsedPrbs;
-              ASN_SEQUENCE_ADD (&edpc->perQCIReportList_du.list, pqrl);
-            }
-
-          sppcl->du_PM_EPC = edpc;
-          ASN_SEQUENCE_ADD (&crrli->servedPlmnPerCellList.list, sppcl);
-        }
-    }
-  ranContainer->choice.oDU = odu;
-  ranContainer->present = PF_Container_PR_oDU;
 }
 
 } // namespace ns3

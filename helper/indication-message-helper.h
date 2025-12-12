@@ -27,9 +27,6 @@
 
 #include <ns3/kpm-indication.h>
 
-
-
-
 namespace ns3 {
 
 class IndicationMessageHelper : public Object
@@ -37,7 +34,6 @@ class IndicationMessageHelper : public Object
 public:
   enum class IndicationMessageType { CuCp = 0, CuUp = 1, Du = 2 , eNB =3, gNB =4}; // UPDATE 1111
   IndicationMessageHelper (IndicationMessageType type, bool isOffline, bool reducedPmValues);
-
   ~IndicationMessageHelper ();
   // update 1029
   Ptr<KpmIndicationMessage> CreateIndicationMessage (const std::string &targetType = "ue");
@@ -49,23 +45,10 @@ public:
   }
 
 protected:
-  void FillBaseCuUpValues (std::string plmId);
-
-  void FillBaseCuCpValues (uint16_t numActiveUes);
-
-  void FillBaseeNBValues (std::string plmId,uint16_t numActiveUes);
-
   IndicationMessageType m_type;
   bool m_offline;
   bool m_reducedPmValues;
   KpmIndicationMessage::KpmIndicationMessageValues m_msgValues;
-  Ptr<OCuUpContainerValues> m_cuUpValues;
-  Ptr<OCuCpContainerValues> m_cuCpValues;
-  Ptr<ODuContainerValues> m_duValues;
-  Ptr<eNBContainerValues> m_enbValues; // UPDATE 11111
-  Ptr<gNBContainerValues> m_gnbValues; // UPDATE 11111
-
-
 };
 
 } // namespace ns3
