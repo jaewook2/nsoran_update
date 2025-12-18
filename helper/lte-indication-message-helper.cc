@@ -31,12 +31,11 @@ LteIndicationMessageHelper::LteIndicationMessageHelper (IndicationMessageType ty
                                                         bool reducedPmValues)
     : IndicationMessageHelper (type, isOffline, reducedPmValues)
 {
-  NS_ABORT_MSG_IF (type == IndicationMessageType::Du,
-                   "Wrong type for LTE Indication Message, expected CuUp or CuCp");
+  NS_ABORT_MSG_IF (type == IndicationMessageType::gNB,
+                   "Wrong type for LTE Indication Message, expected eNB");
 }
 
-// 추가 update 1111
-
+// update user plan measurements 
 void
 LteIndicationMessageHelper::AddeNBUePmItem (std::string ueImsiComplete, long txBytes,
                                              long txDlPackets, double pdcpThroughput,
@@ -46,18 +45,13 @@ LteIndicationMessageHelper::AddeNBUePmItem (std::string ueImsiComplete, long txB
   Ptr<MeasurementItemList> ueVal = Create<MeasurementItemList> (ueImsiComplete);
   long ueImsiLong = std::stoll(ueImsiComplete);
     ueVal->AddItem<long> ("UEID", ueImsiLong);
+    ueVal->AddItem<long> ("DRB.PdcpSduVolumeDl_Filter.UEID", txBytes);
+    ueVal->AddItem<long> ("Tot.PdcpSduNbrDl.UEID", txDlPackets);
+    ueVal->AddItem<double> ("DRB.PdcpSduBitRateDl.UEID", pdcpThroughput);
+    ueVal->AddItem<double> ("DRB.PdcpSduDelayDl.UEID", pdcpLatency);
+    ueVal->AddItem<long> ("DRB.EstabSucc.5QI.UEID", numDrb);
+    ueVal->AddItem<long> ("DRB.RelActNbr.5QI.UEID", drbRelAct); // not modeled in the simulator
 
-  if (!m_reducedPmValues)
-    {
-      // cuup
-      ueVal->AddItem<long> ("DRB.PdcpSduVolumeDl_Filter.UEID", txBytes);
-      ueVal->AddItem<long> ("Tot.PdcpSduNbrDl.UEID", txDlPackets);
-      ueVal->AddItem<double> ("DRB.PdcpSduBitRateDl.UEID", pdcpThroughput);
-      ueVal->AddItem<double> ("DRB.PdcpSduDelayDl.UEID", pdcpLatency);
-      // cucp
-      ueVal->AddItem<long> ("DRB.EstabSucc.5QI.UEID", numDrb);
-      ueVal->AddItem<long> ("DRB.RelActNbr.5QI.UEID", drbRelAct); // not modeled in the simulator
-    }
 
   m_msgValues.m_ueIndications.insert (ueVal);
 }
@@ -69,19 +63,12 @@ LteIndicationMessageHelper::AddeNBCellPmItem (long cellid, double cellAverageLat
     Ptr<MeasurementItemList> cellVal = Create<MeasurementItemList> ();
   
     cellVal->AddItem<long> ("cellID", cellid);
+    cellVal->AddItem<double> ("DRB.PdcpSduDelayDl", cellAverageLatency);
+    cellVal->AddItem<double> ("pdcpBytesUl", pdcpBytesUl);
+    cellVal->AddItem<double> ("pdcpBytesDl", pdcpBytesDl);
+    cellVal->AddItem<double> ("numActiveUes", numActiveUes);
+    m_msgValues.m_cellMeasurementItems = cellVal;
 
-  if (!m_reducedPmValues)
-    {
-      cellVal->AddItem<double> ("DRB.PdcpSduDelayDl", cellAverageLatency);
-
-      // PM 정보를 Cell 정보로 변경
-      cellVal->AddItem<double> ("pdcpBytesUl", pdcpBytesUl);
-      cellVal->AddItem<double> ("pdcpBytesDl", pdcpBytesDl);
-      cellVal->AddItem<double> ("numActiveUes", numActiveUes);
-
-
-      m_msgValues.m_cellMeasurementItems = cellVal;
-    }
 
     
 }

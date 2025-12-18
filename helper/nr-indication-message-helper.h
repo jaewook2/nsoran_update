@@ -22,19 +22,19 @@
  *		   Michele Polese <michele.polese@gmail.com>
  */
 
-#ifndef MMWAVE_INDICATION_MESSAGE_HELPER_H
-#define MMWAVE_INDICATION_MESSAGE_HELPER_H
+#ifndef NR_INDICATION_MESSAGE_HELPER_H
+#define NR_INDICATION_MESSAGE_HELPER_H
 
 #include <ns3/indication-message-helper.h>
 
 namespace ns3 {
 
-class MmWaveIndicationMessageHelper : public IndicationMessageHelper
+class NrIndicationMessageHelper : public IndicationMessageHelper
 {
 public:
-  MmWaveIndicationMessageHelper (IndicationMessageType type, bool isOffline, bool reducedPmValues);
+  NrIndicationMessageHelper (IndicationMessageType type, bool isOffline, bool reducedPmValues);
 
-  ~MmWaveIndicationMessageHelper ();
+  ~NrIndicationMessageHelper ();
   
   void AddgNBUeItem (std::string ueImsiComplete, long numDrb,
                                                 long drbRelAct,
@@ -75,4 +75,4 @@ private:
 
 } // namespace ns3
 
-#endif /* MMWAVE_INDICATION_MESSAGE_HELPER_H */
+#endif /* NR_INDICATION_MESSAGE_HELPER_H */

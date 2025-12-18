@@ -37,18 +37,7 @@ IndicationMessageHelper::IndicationMessageHelper (IndicationMessageType type, bo
     {
       switch (type)
         {
-        case IndicationMessageType::CuUp:
-          m_msgValues.m_cellObjectId = "CellCUUP";
-          break;
-
-        case IndicationMessageType::CuCp:
-          m_msgValues.m_cellObjectId = "CellCUCP";
-          break;
-
-        case IndicationMessageType::Du:
-          m_msgValues.m_cellObjectId = "CellCDU";
-          break;
-
+         // To be deleted it is not used 
         case IndicationMessageType::eNB:
           m_msgValues.m_cellObjectId = "eNB";
           break;
@@ -67,7 +56,7 @@ IndicationMessageHelper::IndicationMessageHelper (IndicationMessageType type, bo
 IndicationMessageHelper::~IndicationMessageHelper ()
 {
 }
-//update 1029
+
 Ptr<KpmIndicationMessage>
 IndicationMessageHelper::CreateIndicationMessage (const std::string &targetType)
 {

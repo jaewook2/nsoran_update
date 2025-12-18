@@ -41,7 +41,7 @@ build_lib(
                  helper/oran-interface-helper.cc
                  helper/indication-message-helper.cc
                  helper/lte-indication-message-helper.cc
-                 helper/mmwave-indication-message-helper.cc
+                 helper/nr-indication-message-helper.cc
     HEADER_FILES model/oran-interface.h
                  helper/oran-interface-helper.h
                  model/asn1c-types.h
@@ -52,7 +52,7 @@ build_lib(
                  model/ric-control-function-description.h
                  helper/indication-message-helper.h
                  helper/lte-indication-message-helper.h
-                 helper/mmwave-indication-message-helper.h
+                 helper/nr-indication-message-helper.h
     LIBRARIES_TO_LINK 
                     ${libcore}
                     ${e2sim_LIBRARIES}

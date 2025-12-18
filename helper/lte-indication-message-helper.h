@@ -36,7 +36,6 @@ public:
 
   ~LteIndicationMessageHelper ();
 
-  // 1111 update
   void AddeNBUePmItem (std::string ueImsiComplete, long txBytes,
                                              long txDlPackets, double pdcpThroughput,
                                              double pdcpLatency,  long numDrb,

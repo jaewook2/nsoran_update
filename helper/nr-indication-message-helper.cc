@@ -24,18 +24,23 @@
  *       Mostafa Ashraf <mostafa.ashraf.ext@orange.com>
  */
 
-#include <ns3/mmwave-indication-message-helper.h>
+#include <ns3/nr-indication-message-helper.h>
 
 namespace ns3 {
 
-MmWaveIndicationMessageHelper::MmWaveIndicationMessageHelper (IndicationMessageType type,
+NrIndicationMessageHelper::NrIndicationMessageHelper (IndicationMessageType type,
                                                               bool isOffline, bool reducedPmValues)
     : IndicationMessageHelper (type, isOffline, reducedPmValues)
 {
+    NS_ABORT_MSG_IF (type == IndicationMessageType::eNB,
+                   "Wrong type for NR Indication Message, expected gNB");
 }
 
+
+// To Do : Distingush CU-CP/ UP/ DU Measurement 
+//  To Do : update user plan measurements 
 void
-MmWaveIndicationMessageHelper::AddgNBUeItem (std::string ueImsiComplete, long numDrb,
+NrIndicationMessageHelper::AddgNBUeItem (std::string ueImsiComplete, long numDrb,
                                                 long drbRelAct,
                                                 long txPdcpPduBytesNrRlc, long txPdcpPduNrRlc, 
                                                 long macPduUe, long macPduInitialUe, long macQpsk, 
@@ -57,95 +62,69 @@ MmWaveIndicationMessageHelper::AddgNBUeItem (std::string ueImsiComplete, long nu
                                                 double sinrNeigCell8, double convertedSinrNeigCell8,  uint16_t IDNeigCell8   
                                               )
 {
-
   Ptr<MeasurementItemList> ueVal = Create<MeasurementItemList> (ueImsiComplete);
     long ueImsiLong = std::stoll(ueImsiComplete);
 
     ueVal->AddItem<long> ("UEID", ueImsiLong);
-  if (!m_reducedPmValues)
-    {
-      //CUCP
-      ueVal->AddItem<long> ("DRB.EstabSucc.5QI.UEID", numDrb);
-      ueVal->AddItem<long> ("DRB.RelActNbr.5QI.UEID", drbRelAct); // not modeled in the simulator
-      // CUUP
-      ueVal->AddItem<long> ("QosFlow.PdcpPduVolumeDL_Filter.UEID", txPdcpPduBytesNrRlc);
-      ueVal->AddItem<long> ("DRB.PdcpPduNbrDl.Qos.UEID", txPdcpPduNrRlc);
-      //DU
-      ueVal->AddItem<long> ("TB.TotNbrDl.1.UEID", macPduUe);
-      ueVal->AddItem<long> ("TB.TotNbrDlInitial.UEID", macPduInitialUe);
-      ueVal->AddItem<long> ("TB.TotNbrDlInitial.Qpsk.UEID", macQpsk);
-      ueVal->AddItem<long> ("TB.TotNbrDlInitial.16Qam.UEID", mac16Qam);
-      ueVal->AddItem<long> ("TB.TotNbrDlInitial.64Qam.UEID", mac64Qam);
-      ueVal->AddItem<long> ("TB.ErrTotalNbrDl.1.UEID", macRetx);
-      ueVal->AddItem<long> ("QosFlow.PdcpPduVolumeDL_Filter.UEID", macVolume);
-      ueVal->AddItem<long> ("RRU.PrbUsedDl.UEID", (long) std::ceil (macPrb));
-      ueVal->AddItem<long> ("CARR.PDSCHMCSDist.Bin1.UEID", macMac04);
-      ueVal->AddItem<long> ("CARR.PDSCHMCSDist.Bin2.UEID", macMac59);
-      ueVal->AddItem<long> ("CARR.PDSCHMCSDist.Bin3.UEID", macMac1014);
-      ueVal->AddItem<long> ("CARR.PDSCHMCSDist.Bin4.UEID", macMac1519);
-      ueVal->AddItem<long> ("CARR.PDSCHMCSDist.Bin5.UEID", macMac2024);
-      ueVal->AddItem<long> ("CARR.PDSCHMCSDist.Bin6.UEID", macMac2529);
-      ueVal->AddItem<long> ("L1M.RS-SINR.Bin34.UEID", macSinrBin1);
-      ueVal->AddItem<long> ("L1M.RS-SINR.Bin46.UEID", macSinrBin2);
-      ueVal->AddItem<long> ("L1M.RS-SINR.Bin58.UEID", macSinrBin3);
-      ueVal->AddItem<long> ("L1M.RS-SINR.Bin70.UEID", macSinrBin4);
-      ueVal->AddItem<long> ("L1M.RS-SINR.Bin82.UEID", macSinrBin5);
-      ueVal->AddItem<long> ("L1M.RS-SINR.Bin94.UEID", macSinrBin6);
-      ueVal->AddItem<long> ("L1M.RS-SINR.Bin127.UEID", macSinrBin7);
-      ueVal->AddItem<long> ("DRB.BufferSize.Qos.UEID", rlcBufferOccup);
-
-
-    }
-
-  // 입력으로 받아야 되는 값 ServCellSINR (sinrThisCell), ServCellID (m_cellId), ServCellSINRConverted (convertedSinr)
-  // m_l3sinrMap 에 저장 <sinr (double), cellID (STRING)>
-  //
-
-
-      ueVal->AddItem<double> ("HO.SrcCellQual.RS-SINR.UEID", sinrServCell);
-      ueVal->AddItem<double> ("HO.SrcCellQual.RS-SINR-Converted.UEID", convertedSinrServCell);
-      ueVal->AddItem<long> ("HO.SrcCellID.UEID", IDServCell);
-
-      ueVal->AddItem<double> ("HO.TrgtCellQual.1.RS-SINR.UEID", sinrNeigCell1);
-      ueVal->AddItem<double> ("HO.TrgtCellQual.1.RS-SINR-Converted.UEID", convertedSinrNeigCell1);
-      ueVal->AddItem<long> ("HO.TrgtCellQual.1.UEID", IDNeigCell1);
-
-      ueVal->AddItem<double> ("HO.TrgtCellQual.2.RS-SINR.UEID", sinrNeigCell2);
-      ueVal->AddItem<double> ("HO.TrgtCellQual.2.RS-SINR-Converted.UEID", convertedSinrNeigCell2);
-      ueVal->AddItem<long> ("HO.TrgtCellQual.2.UEID", IDNeigCell2);
-
-      ueVal->AddItem<double> ("HO.TrgtCellQual.3.RS-SINR.UEID", sinrNeigCell3);
-      ueVal->AddItem<double> ("HO.TrgtCellQual.3.RS-SINR-Converted.UEID", convertedSinrNeigCell3);
-      ueVal->AddItem<long> ("HO.TrgtCellQual.3.UEID", IDNeigCell3);
-
-      ueVal->AddItem<double> ("HO.TrgtCellQual.4.RS-SINR.UEID", sinrNeigCell4);
-      ueVal->AddItem<double> ("HO.TrgtCellQual.4.RS-SINR-Converted.UEID", convertedSinrNeigCell4);
-      ueVal->AddItem<long> ("HO.TrgtCellQual.4.UEID", IDNeigCell4);
-
-      ueVal->AddItem<double> ("HO.TrgtCellQual.5.RS-SINR.UEID", sinrNeigCell5);
-      ueVal->AddItem<double> ("HO.TrgtCellQual.5.RS-SINR-Converted.UEID", convertedSinrNeigCell5);
-      ueVal->AddItem<long> ("HO.TrgtCellQual.5.UEID", IDNeigCell5);
-
-      ueVal->AddItem<double> ("HO.TrgtCellQual.6.RS-SINR.UEID", sinrNeigCell6);
-      ueVal->AddItem<double> ("HO.TrgtCellQual.6.RS-SINR-Converted.UEID", convertedSinrNeigCell6);
-      ueVal->AddItem<long> ("HO.TrgtCellQual.6.UEID", IDNeigCell6);
-
-      ueVal->AddItem<double> ("HO.TrgtCellQual.7.RS-SINR.UEID", sinrNeigCell7);
-      ueVal->AddItem<double> ("HO.TrgtCellQual.7.RS-SINR-Converted.UEID", convertedSinrNeigCell7);
-      ueVal->AddItem<long> ("HO.TrgtCellQual.7.UEID", IDNeigCell7);
-
-      ueVal->AddItem<double> ("HO.TrgtCellQual.8.RS-SINR.UEID", sinrNeigCell8);
-      ueVal->AddItem<double> ("HO.TrgtCellQual.8.RS-SINR-Converted.UEID", convertedSinrNeigCell8);
-      ueVal->AddItem<long> ("HO.TrgtCellQual.8.UEID", IDNeigCell8);
-
-  //du
-  ueVal->AddItem<double> ("DRB.UEThpDl.UEID", drbThrDlUeid);
-
-  m_msgValues.m_ueIndications.insert (ueVal);
+    ueVal->AddItem<long> ("DRB.EstabSucc.5QI.UEID", numDrb);
+    ueVal->AddItem<long> ("DRB.RelActNbr.5QI.UEID", drbRelAct); // not modeled in the simulator
+    ueVal->AddItem<long> ("QosFlow.PdcpPduVolumeDL_Filter.UEID", txPdcpPduBytesNrRlc);
+    ueVal->AddItem<long> ("DRB.PdcpPduNbrDl.Qos.UEID", txPdcpPduNrRlc);
+    ueVal->AddItem<long> ("TB.TotNbrDl.1.UEID", macPduUe);
+    ueVal->AddItem<long> ("TB.TotNbrDlInitial.UEID", macPduInitialUe);
+    ueVal->AddItem<long> ("TB.TotNbrDlInitial.Qpsk.UEID", macQpsk);
+    ueVal->AddItem<long> ("TB.TotNbrDlInitial.16Qam.UEID", mac16Qam);
+    ueVal->AddItem<long> ("TB.TotNbrDlInitial.64Qam.UEID", mac64Qam);
+    ueVal->AddItem<long> ("TB.ErrTotalNbrDl.1.UEID", macRetx);
+    ueVal->AddItem<long> ("QosFlow.PdcpPduVolumeDL_Filter.UEID", macVolume);
+    ueVal->AddItem<long> ("RRU.PrbUsedDl.UEID", (long) std::ceil (macPrb));
+    ueVal->AddItem<long> ("CARR.PDSCHMCSDist.Bin1.UEID", macMac04);
+    ueVal->AddItem<long> ("CARR.PDSCHMCSDist.Bin2.UEID", macMac59);
+    ueVal->AddItem<long> ("CARR.PDSCHMCSDist.Bin3.UEID", macMac1014);
+    ueVal->AddItem<long> ("CARR.PDSCHMCSDist.Bin4.UEID", macMac1519);
+    ueVal->AddItem<long> ("CARR.PDSCHMCSDist.Bin5.UEID", macMac2024);
+    ueVal->AddItem<long> ("CARR.PDSCHMCSDist.Bin6.UEID", macMac2529);
+    ueVal->AddItem<long> ("L1M.RS-SINR.Bin34.UEID", macSinrBin1);
+    ueVal->AddItem<long> ("L1M.RS-SINR.Bin46.UEID", macSinrBin2);
+    ueVal->AddItem<long> ("L1M.RS-SINR.Bin58.UEID", macSinrBin3);
+    ueVal->AddItem<long> ("L1M.RS-SINR.Bin70.UEID", macSinrBin4);
+    ueVal->AddItem<long> ("L1M.RS-SINR.Bin82.UEID", macSinrBin5);
+    ueVal->AddItem<long> ("L1M.RS-SINR.Bin94.UEID", macSinrBin6);
+    ueVal->AddItem<long> ("L1M.RS-SINR.Bin127.UEID", macSinrBin7);
+    ueVal->AddItem<long> ("DRB.BufferSize.Qos.UEID", rlcBufferOccup);
+    ueVal->AddItem<double> ("HO.SrcCellQual.RS-SINR.UEID", sinrServCell);
+    ueVal->AddItem<double> ("HO.SrcCellQual.RS-SINR-Converted.UEID", convertedSinrServCell);
+    ueVal->AddItem<long> ("HO.SrcCellID.UEID", IDServCell);
+    ueVal->AddItem<double> ("HO.TrgtCellQual.1.RS-SINR.UEID", sinrNeigCell1);
+    ueVal->AddItem<double> ("HO.TrgtCellQual.1.RS-SINR-Converted.UEID", convertedSinrNeigCell1);
+    ueVal->AddItem<long> ("HO.TrgtCellQual.1.UEID", IDNeigCell1);
+    ueVal->AddItem<double> ("HO.TrgtCellQual.2.RS-SINR.UEID", sinrNeigCell2);
+    ueVal->AddItem<double> ("HO.TrgtCellQual.2.RS-SINR-Converted.UEID", convertedSinrNeigCell2);
+    ueVal->AddItem<long> ("HO.TrgtCellQual.2.UEID", IDNeigCell2);
+    ueVal->AddItem<double> ("HO.TrgtCellQual.3.RS-SINR.UEID", sinrNeigCell3);
+    ueVal->AddItem<double> ("HO.TrgtCellQual.3.RS-SINR-Converted.UEID", convertedSinrNeigCell3);
+    ueVal->AddItem<long> ("HO.TrgtCellQual.3.UEID", IDNeigCell3);
+    ueVal->AddItem<double> ("HO.TrgtCellQual.4.RS-SINR.UEID", sinrNeigCell4);
+    ueVal->AddItem<double> ("HO.TrgtCellQual.4.RS-SINR-Converted.UEID", convertedSinrNeigCell4);
+    ueVal->AddItem<long> ("HO.TrgtCellQual.4.UEID", IDNeigCell4);
+    ueVal->AddItem<double> ("HO.TrgtCellQual.5.RS-SINR.UEID", sinrNeigCell5);
+    ueVal->AddItem<double> ("HO.TrgtCellQual.5.RS-SINR-Converted.UEID", convertedSinrNeigCell5);
+    ueVal->AddItem<long> ("HO.TrgtCellQual.5.UEID", IDNeigCell5);
+    ueVal->AddItem<double> ("HO.TrgtCellQual.6.RS-SINR.UEID", sinrNeigCell6);
+    ueVal->AddItem<double> ("HO.TrgtCellQual.6.RS-SINR-Converted.UEID", convertedSinrNeigCell6);
+    ueVal->AddItem<long> ("HO.TrgtCellQual.6.UEID", IDNeigCell6);
+    ueVal->AddItem<double> ("HO.TrgtCellQual.7.RS-SINR.UEID", sinrNeigCell7);
+    ueVal->AddItem<double> ("HO.TrgtCellQual.7.RS-SINR-Converted.UEID", convertedSinrNeigCell7);
+    ueVal->AddItem<long> ("HO.TrgtCellQual.7.UEID", IDNeigCell7);
+    ueVal->AddItem<double> ("HO.TrgtCellQual.8.RS-SINR.UEID", sinrNeigCell8);
+    ueVal->AddItem<double> ("HO.TrgtCellQual.8.RS-SINR-Converted.UEID", convertedSinrNeigCell8);
+    ueVal->AddItem<long> ("HO.TrgtCellQual.8.UEID", IDNeigCell8);
+    ueVal->AddItem<double> ("DRB.UEThpDl.UEID", drbThrDlUeid);
+    m_msgValues.m_ueIndications.insert (ueVal);
 }
 
 void
-MmWaveIndicationMessageHelper::AddgNBCellItem (long cellid, uint16_t numActiveUes,
+NrIndicationMessageHelper::AddgNBCellItem (long cellid, uint16_t numActiveUes,
     long macPduCellSpecific, long macPduInitialCellSpecific, long macQpskCellSpecific,
     long mac16QamCellSpecific, long mac64QamCellSpecific, double prbUtilizationDl,
     long macRetxCellSpecific, long macVolumeCellSpecific, long macMac04CellSpecific,
@@ -200,7 +179,7 @@ MmWaveIndicationMessageHelper::AddgNBCellItem (long cellid, uint16_t numActiveUe
 
 }
 
-MmWaveIndicationMessageHelper::~MmWaveIndicationMessageHelper ()
+NrIndicationMessageHelper::~MmWaveIndicationMessageHelper ()
 {
 }
 

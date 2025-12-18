@@ -32,7 +32,7 @@ namespace ns3 {
 class IndicationMessageHelper : public Object
 {
 public:
-  enum class IndicationMessageType { CuCp = 0, CuUp = 1, Du = 2 , eNB =3, gNB =4}; // UPDATE 1111
+  enum class IndicationMessageType {eNB =0, gNB =1}; 
   IndicationMessageHelper (IndicationMessageType type, bool isOffline, bool reducedPmValues);
   ~IndicationMessageHelper ();
   // update 1029
