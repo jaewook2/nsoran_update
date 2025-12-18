@@ -35,27 +35,27 @@
 extern "C" {
   #include "OCTET_STRING.h"
   #include "BIT_STRING.h"
-  #include "PM-Info-Item.h"
+  //#include "PM-Info-Item.h"
   #include "S-NSSAI.h"
-  #include "RRCEvent.h"
-  #include "L3-RRC-Measurements.h"
-  #include "ServingCellMeasurements.h"
-  #include "MeasResultNeighCells.h"
-  #include "MeasResultNR.h"
-  #include "MeasResultEUTRA.h"
-  #include "MeasResultPCell.h"
-  #include "MeasResultListEUTRA.h"
-  #include "MeasResultListNR.h"
-  #include "MeasResultServMO.h"
-  #include "MeasResultServMOList.h"
-  #include "MeasQuantityResults.h"
-  #include "ResultsPerSSB-Index.h"
-  #include "ResultsPerCSI-RS-Index.h"
+  //#include "RRCEvent.h"
+  //#include "L3-RRC-Measurements.h"
+ // #include "ServingCellMeasurements.h"
+//  #include "MeasResultNeighCells.h"
+ // #include "MeasResultNR.h"
+ // #include "MeasResultEUTRA.h"
+  //#include "MeasResultPCell.h"
+  //#include "MeasResultListEUTRA.h"
+  //#include "MeasResultListNR.h"
+  //#include "MeasResultServMO.h"
+ // #include "MeasResultServMOList.h"
+  //#include "MeasQuantityResults.h"
+  //#include "ResultsPerSSB-Index.h"
+ // #include "ResultsPerCSI-RS-Index.h"
   #include "E2SM-RC-ControlMessage-Format1.h"
   #include "E2SM-RC-ControlMessage-Format2.h"
-  #include "RANParameter-Item.h"
+ // #include "RANParameter-Item.h"
   #include "RANParameter-ValueType.h"
-  #include "RANParameter-ELEMENT.h"
+ // #include "RANParameter-ELEMENT.h"
   #include "RANParameter-STRUCTURE.h"
   #include "RANParameter-ValueType-Choice-ElementTrue.h"
   #include "RANParameter-ValueType-Choice-Structure.h"
@@ -129,9 +129,7 @@ private:
   S_NSSAI_t *m_sNssai;
 };
 
-/**
-* Wrapper for class for MeasQuantityResults_t
-*/
+/*
 class MeasQuantityResultsWrap : public SimpleRefCount<MeasQuantityResultsWrap>
 {
 public:
@@ -146,10 +144,8 @@ public:
 private:
   MeasQuantityResults_t *m_measQuantityResults;
 };
-
-/**
-* Wrapper for class for ResultsPerCSI_RS_Index_t
 */
+/*
 class ResultsPerCsiRsIndex : public SimpleRefCount<ResultsPerCsiRsIndex>
 {
 public:
@@ -161,10 +157,11 @@ public:
 private:
   ResultsPerCSI_RS_Index_t *m_resultsPerCsiRsIndex;
 };
-
+*/
 /**
 * Wrapper for class for ResultsPerSSB_Index_t
 */
+/*
 class ResultsPerSSBIndex : public SimpleRefCount<ResultsPerSSBIndex>
 {
 public:
@@ -176,10 +173,11 @@ public:
 private:
   ResultsPerSSB_Index_t *m_resultsPerSSBIndex;
 };
-
+*/
 /**
 * Wrapper for class for MeasResultNR_t
 */
+/*
 class MeasResultNr : public SimpleRefCount<MeasResultNr>
 {
 public:
@@ -199,9 +197,6 @@ private:
   bool m_shouldFree;
 };
 
-/**
-* Wrapper for class for MeasResultEUTRA_t
-*/
 class MeasResultEutra : public SimpleRefCount<MeasResultEutra>
 {
 public:
@@ -217,9 +212,6 @@ private:
   MeasResultEUTRA_t *m_measResultEutra;
 };
 
-/**
-* Wrapper for class for MeasResultPCell_t
-*/
 class MeasResultPCellWrap : public SimpleRefCount<MeasResultPCellWrap>
 {
 public:
@@ -234,9 +226,6 @@ private:
   MeasResultPCell_t *m_measResultPCell;
 };
 
-/**
-* Wrapper for class for MeasResultServMO_t
-*/
 class MeasResultServMo : public SimpleRefCount<MeasResultServMo>
 {
 public:
@@ -250,9 +239,6 @@ private:
   MeasResultServMO_t *m_measResultServMo;
 };
 
-/**
-* Wrapper for class for ServingCellMeasurements_t
-*/
 class ServingCellMeasurementsWrap : public SimpleRefCount<ServingCellMeasurementsWrap>
 {
 public:
@@ -267,9 +253,6 @@ private:
   MeasResultServMOList_t *m_nr_measResultServingMOList;
 };
 
-/**
-* Wrapper for class for L3 RRC Measurements
-*/
 class L3RrcMeasurements : public SimpleRefCount<L3RrcMeasurements>
 {
 public:
@@ -293,14 +276,6 @@ public:
   // TODO change definition and return the values (to be used for decoding)
   static void ExtractMeasurementsFromL3RrcMeas (L3_RRC_Measurements_t *l3RrcMeasurements);
   
-  /**
-   * Returns the input SINR on a 0-127 scale
-   * 
-   * Refer to 3GPP TS 38.133 V17.2.0(2021-06), Table 10.1.16.1-1: SS-SINR and CSI-SINR measurement report mapping
-   * 
-   * @param sinr 
-   * @return double 
-   */
   static double ThreeGppMapSinr (double sinr);
 
 private:
@@ -311,18 +286,17 @@ private:
   int m_measItemsCounter;
 };
 
-/**
-* Wrapper for class for PM_Info_Item_t
 */
+/*
 class MeasurementItem : public SimpleRefCount<MeasurementItem>
 {
 public:
   MeasurementItem (std::string name, long value);
   MeasurementItem (std::string name, double value);
-  MeasurementItem (std::string name, Ptr<L3RrcMeasurements> value);
+  //MeasurementItem (std::string name, Ptr<L3RrcMeasurements> value);
   ~MeasurementItem ();
-  PM_Info_Item_t *GetPointer ();
-  PM_Info_Item_t GetValue ();
+  //PM_Info_Item_t *GetPointer ();
+  //PM_Info_Item_t GetValue ();
 
 private:
   MeasurementItem (std::string name);
@@ -335,10 +309,8 @@ private:
   MeasurementValue_t *m_pmVal;
   MeasurementType_t *m_pmType;
 };
-
-/**
-* Wrapper for class for RANParameter_STRUCTURE_Item_t 
 */
+/*
 class RANParameterItem : public SimpleRefCount<RANParameterItem>
 {
 public:
@@ -360,6 +332,7 @@ private:
   RANParameter_STRUCTURE_Item_t *m_ranParameterItem;
   BOOLEAN_t *m_keyFlag;
 };
+*/
 
 } // namespace ns3
 #endif /* ASN1C_TYPES_H */

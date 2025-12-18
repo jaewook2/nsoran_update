@@ -193,7 +193,7 @@ Snssai::GetValue ()
 {
   return *m_sNssai;
 }
-
+/*
 void
 MeasQuantityResultsWrap::AddRsrp (long rsrp)
 {
@@ -729,7 +729,7 @@ L3RrcMeasurements::ExtractMeasurementsFromL3RrcMeas (L3_RRC_Measurements_t *l3Rr
       MeasResultNeighCells_t *measResultNeighCells = l3RrcMeasurements->measResultNeighCells;
       switch (measResultNeighCells->present)
         {
-          case MeasResultNeighCells_PR_NOTHING: { /* No components present */
+          case MeasResultNeighCells_PR_NOTHING: {
             NS_LOG_DEBUG ("No components present");
           }
           break;
@@ -753,7 +753,7 @@ L3RrcMeasurements::ExtractMeasurementsFromL3RrcMeas (L3_RRC_Measurements_t *l3Rr
           l3RrcMeasurements->servingCellMeasurements;
       switch (servingCellMeasurements->present)
         {
-          case ServingCellMeasurements_PR_NOTHING: { /* No components present */
+          case ServingCellMeasurements_PR_NOTHING: { 
             NS_LOG_DEBUG ("No components present");
           }
           break;
@@ -910,7 +910,7 @@ RANParameterItem::ExtractRANParametersFromRANParameter (RANParameter_STRUCTURE_I
         // RANParameter_Item_t
         // RANParameter_ValueType_t
         
-        // /* ????? */  ranParameterElement=
+        //  ranParameterElement=
         //     ranParameterItem->ranParameterItem_valueType->choice.ranP_Choice_ElementTrue;
 
         RANParameter_ValueType_t* ranPar_valueType = ranParameterItem->ranParameter_valueType;
@@ -993,6 +993,6 @@ RANParameterItem::ExtractRANParametersFromRANParameter (RANParameter_STRUCTURE_I
 
   return ranParameterList;
 }
-
+*/
 
 }; // namespace ns3

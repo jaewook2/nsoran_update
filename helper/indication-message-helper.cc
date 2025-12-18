@@ -37,19 +37,13 @@ IndicationMessageHelper::IndicationMessageHelper (IndicationMessageType type, bo
     {
       switch (type)
         {
-        case IndicationMessageType::CuUp:
-          m_cuUpValues = Create<OCuUpContainerValues> ();
+         // To be deleted it is not used 
+        case IndicationMessageType::eNB:
+          m_msgValues.m_cellObjectId = "eNB";
           break;
-
-        case IndicationMessageType::CuCp:
-          m_cuCpValues = Create<OCuCpContainerValues> ();
-          m_msgValues.m_cellObjectId = "NRCellCU";
+        case IndicationMessageType::gNB:
+          m_msgValues.m_cellObjectId = "gNB";
           break;
-
-        case IndicationMessageType::Du:
-          m_duValues = Create<ODuContainerValues> ();
-          break;
-
         default:
 
           break;
@@ -57,26 +51,12 @@ IndicationMessageHelper::IndicationMessageHelper (IndicationMessageType type, bo
     }
 }
 
-void
-IndicationMessageHelper::FillBaseCuUpValues (std::string plmId)
-{
-  NS_ABORT_MSG_IF (m_type != IndicationMessageType::CuUp, "Wrong function for this object");
-  m_cuUpValues->m_plmId = plmId;
-  m_msgValues.m_pmContainerValues = m_cuUpValues;
-}
 
-void
-IndicationMessageHelper::FillBaseCuCpValues (uint16_t numActiveUes)
-{
-  NS_ABORT_MSG_IF (m_type != IndicationMessageType::CuCp, "Wrong function for this object");
-  m_cuCpValues->m_numActiveUes = numActiveUes;
-  m_msgValues.m_pmContainerValues = m_cuCpValues;
-}
 
 IndicationMessageHelper::~IndicationMessageHelper ()
 {
 }
-//update 1029
+
 Ptr<KpmIndicationMessage>
 IndicationMessageHelper::CreateIndicationMessage (const std::string &targetType)
 {
@@ -86,7 +66,7 @@ IndicationMessageHelper::CreateIndicationMessage (const std::string &targetType)
   if (targetType == "cell" ) {
       format_type = E2SM_KPM_INDICATION_MESSAGE_FORMART1;
   }  else if (targetType == "ue") {
-      format_type = E2SM_KPM_INDICATION_MESSAGE_FORMART3;
+      format_type = E2SM_KPM_INDICATION_MESSAGE_FORMART2; // FORMAT2
   } else {
       NS_LOG_WARN("Unknown target type: " << targetType << ", defaulting to UE (Format3)");
       format_type = E2SM_KPM_INDICATION_MESSAGE_FORMART3;
@@ -94,5 +74,7 @@ IndicationMessageHelper::CreateIndicationMessage (const std::string &targetType)
 
   return Create<KpmIndicationMessage> (m_msgValues, format_type);
 }
+
+
 
 } // namespace ns3

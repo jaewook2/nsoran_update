@@ -36,16 +36,11 @@ public:
 
   ~LteIndicationMessageHelper ();
 
-  void FillCuUpValues (std::string plmId, long pdcpBytesUl, long pdcpBytesDl);
-
-  void AddCuUpUePmItem  (std::string ueImsiComplete, long txBytes, long txDlPackets,
-                           double pdcpThroughput, double pdcpLatency);
-
-  void AddCuUpCellPmItem (double cellAverageLatency);
-
-  void FillCuCpValues (uint16_t numActiveUes);
-
-  void AddCuCpUePmItem (std::string ueImsiComplete, long numDrb, long drbRelAct);
+  void AddeNBUePmItem (std::string ueImsiComplete, long txBytes,
+                                             long txDlPackets, double pdcpThroughput,
+                                             double pdcpLatency,  long numDrb,
+                                             long drbRelAct);
+  void AddeNBCellPmItem (long cellid,double cellAverageLatency, long pdcpBytesUl, long pdcpBytesDl, uint16_t numActiveUes);
 
 private:
 };

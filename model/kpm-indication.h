@@ -46,58 +46,83 @@ extern "C" {
 #include "E2SM-KPM-RANfunction-Description.h"
 #include "E2SM-KPM-IndicationHeader.h"
 #include "E2SM-KPM-IndicationMessage.h"
-#include "RAN-Container.h"
-#include "PF-Container.h"
-#include "OCUUP-PF-Container.h"
-#include "OCUCP-PF-Container.h"
-#include "ODU-PF-Container.h"
-#include "PF-ContainerListItem.h"
 #include "asn1c-types.h"
 
 //===================================
 
-#include "E2SM-KPM-IndicationHeader-Format1.h"
-#include "E2SM-KPM-IndicationMessage-Format1.h"
+
 #include "GlobalE2node-ID.h"
 #include "GlobalE2node-gNB-ID.h"
 #include "GlobalE2node-eNB-ID.h"
 #include "GlobalE2node-ng-eNB-ID.h"
 #include "GlobalE2node-en-gNB-ID.h"
-#include "NRCGI.h"
-#include "PM-Containers-Item.h"
 #include "RIC-EventTriggerStyle-Item.h"
 #include "RIC-ReportStyle-Item.h"
 #include "TimeStamp.h"
-#include "CUUPMeasurement-Container.h"
-#include "PlmnID-Item.h"
-#include "EPC-CUUP-PM-Format.h"
-#include "PerQCIReportListItemFormat.h"
-#include "PerUE-PM-Item.h"
-#include "PM-Info-Item.h"
 #include "MeasurementInfoList.h"
-#include "CellObjectID.h"
-#include "CellResourceReportListItem.h"
-#include "ServedPlmnPerCellListItem.h"
-#include "EPC-DU-PM-Container.h"
-#include "PerQCIReportListItem.h"
-//==============================================================
 #include "MeasurementRecordItem.h"
 #include "MeasurementDataItem.h"
 #include "MeasurementInfoItem.h"
+#include "MeasurementCondUEidList.h"
+#include "MeasurementCondUEidItem.h"
+#include "MeasurementType.h"
+#include "MatchingCondList.h"
+#include "MatchingCondItem.h"
+#include "TestCondInfo.h"
+#include "TestCond-Type.h"
+#include "TestCond-Expression.h"
+#include "TestCond-Value.h"
+#include "MatchingUEidList.h"
+#include "MatchingUEidItem.h"
+#include "UEID.h"
+
 #include "LabelInfoItem.h"
 #include "MeasurementLabel.h"
-#include "E2SM-KPM-IndicationMessage-Format3.h"
-#include "UEMeasurementReportItem.h"
 #include "UEID-GNB.h"
+
+#include "E2SM-KPM-IndicationHeader-Format1.h"
+#include "E2SM-KPM-IndicationMessage-Format1.h"
+#include "E2SM-KPM-IndicationMessage-Format2.h"
+
 }
 
 namespace ns3 {
 
+struct UeReport
+{
+  std::string ueId;
+  std::vector<std::string> metricNames;
+  std::vector<double> metricValues;
+};
 enum E2SM_KPM_IndicationMessage_FormatType {
   E2SM_KPM_INDICATION_MESSAGE_FORMART1 = 0,
   E2SM_KPM_INDICATION_MESSAGE_FORMART2,
   E2SM_KPM_INDICATION_MESSAGE_FORMART3
 };
+
+/// 추가
+class MeasurementItem : public SimpleRefCount<MeasurementItem>
+{
+public:
+  MeasurementItem (std::string name, long value);
+  MeasurementItem (std::string name, double value);
+
+  ~MeasurementItem ();
+
+  // v2 핵심: measurementInfo + recordItem
+  MeasurementRecordItem_t* GetRecordItem ();
+  MeasurementInfoItem_t*   GetInfoItem ();
+
+private:
+  void CreateRecordItem (long value);
+  void CreateRecordItem (double value);
+  void CreateInfoItem(std::string name);
+
+
+  MeasurementRecordItem_t *m_recordItem;      // 값
+  MeasurementInfoItem_t   *m_infoItem;        // 이름, 라벨 등
+};
+
 
 class KpmIndicationHeader : public SimpleRefCount<KpmIndicationHeader>
 {
@@ -105,45 +130,13 @@ public:
   enum GlobalE2nodeType { gNB = 0, eNB = 1, ng_eNB = 2, en_gNB = 3 };
 
   const static int TIMESTAMP_LIMIT_SIZE = 8;
-  /**
-    * Holds the values to be used to fill the RIC Indication header 
-    */
+
   struct KpmRicIndicationHeaderValues
   {
-    // E2SM-KPM Indication Header Format 1
-    // KPM Node ID IE
+ 
     std::string m_gnbId; //!< gNB ID bit string
-    // TODO not supported
-    // uint64_t m_cuUpId; //!< gNB-CU-UP ID, integer [0, 2^36-1], optional
-
-    // Cell Global ID (NR CGI) IE
     uint16_t m_nrCellId; //!< NR, bit string
-
-    // PLMN ID IE
     std::string m_plmId; //!< PLMN identity, octet string, 3 bytes
-
-    // Slice ID (S-NSSAI) IE // TODO not supported
-    // std::string m_sst; //!< SNSSAI sST, 1 byte
-    // std::string m_sd; //!< SNSSAI sD, 3 bytes, optional
-
-    // FiveQI IE // TODO not supported
-    // uint8_t m_fiveqi; //!< fiveQI, integer [0, 255], optional
-
-    // QCI IE // TODO not supported
-    // long m_qci; //!< QCI, integer [0, 255], optional
-
-    // TODO this value is placed in a fiels which seems not to be defined
-    // in the specs. See line 301 in encode_kpm.cpp
-    // the field is called gNB_DU_ID
-    // it should be part of KPM Node ID IE
-    // m_duId
-
-    // TODO this value is placed in a fiels which seems not to be defined
-    // in the specs. See line 290 in encode_kpm.cpp, the field is called
-    // gNB_Name
-    // m_cuUpName
-
-    // CollectionTimeStamp
     uint64_t m_timestamp;
   };
 
@@ -159,17 +152,8 @@ public:
   size_t m_size;
 
 private:
-  /**
-    * Fills the KPM INDICATION Header descriptor
-    * This function fills the RIC Indication Header with the provided 
-    * values
-    *
-    * \param descriptor object representing the KPM INDICATION Header
-    * \param values struct holding the values to be used to fill the header 
-    */
   void FillAndEncodeKpmRicIndicationHeader (E2SM_KPM_IndicationHeader_t *descriptor,
                                             KpmRicIndicationHeaderValues values);
-
   void Encode (E2SM_KPM_IndicationHeader_t *descriptor);
 
   GlobalE2nodeType m_nodeType;
@@ -184,8 +168,6 @@ public:
   MeasurementItemList ();
   MeasurementItemList (std::string ueId);
   ~MeasurementItemList ();
-
-  // NOTE defined here to avoid undefined references
   template <class T>
   void
   AddItem (std::string name, T value)
@@ -198,90 +180,6 @@ public:
   OCTET_STRING_t GetId ();
 };
 
-/**
-  * Base class to carry PM Container values  
-  */
-class PmContainerValues : public SimpleRefCount<PmContainerValues>
-{
-public:
-  virtual ~PmContainerValues () = default;
-};
-
-/**
-  * Contains the values to be inserted in the O-CU-CP Measurement Container  
-  */
-class OCuCpContainerValues : public PmContainerValues
-{
-public:
-  uint16_t m_numActiveUes; //!< mean number of RRC connections
-};
-
-/**
-  * Contains the values to be inserted in the O-CU-UP Measurement Container  
-  */
-class OCuUpContainerValues : public PmContainerValues
-{
-public:
-  std::string m_plmId; //!< PLMN identity, octet string, 3 bytes
-  long m_pDCPBytesUL; //!< total PDCP bytes transmitted UL
-  long m_pDCPBytesDL; //!< total PDCP bytes transmitted DL
-};
-
-/**
-  * Contains the values to be inserted in the O-DU EPC Measurement Container  
-  */
-class EpcDuPmContainer : public SimpleRefCount<EpcDuPmContainer>
-{
-public:
-  long m_qci; //!< QCI value
-  long
-      m_dlPrbUsage; //!< Used number of PRBs in an average of DL for the monitored slice during E2 reporting period
-  long
-      m_ulPrbUsage; //!< Used number of PRBs in an average of UL for the monitored slice during E2 reporting period
-  virtual ~EpcDuPmContainer () = default;
-};
-
-/**
-  * Contains the values to be inserted in the O-DU 5GC Measurement Container  
-  */
-class FiveGcDuPmContainer : public SimpleRefCount<FiveGcDuPmContainer>
-{
-public:
-  // Snssai m_sliceId; //!< S-NSSAI
-  long m_fiveQi; //!< 5QI value
-  long
-      m_dlPrbUsage; //!< Used number of PRBs in an average of DL for the monitored slice during E2 reporting period
-  long
-      m_ulPrbUsage; //!< Used number of PRBs in an average of UL for the monitored slice during E2 reporting period
-  virtual ~FiveGcDuPmContainer () = default;
-};
-
-class ServedPlmnPerCell : public SimpleRefCount<ServedPlmnPerCell>
-{
-public:
-  std::string m_plmId; //!< PLMN identity, octet string, 3 bytes
-  uint16_t m_nrCellId;
-  std::set<Ptr<EpcDuPmContainer>> m_perQciReportItems;
-};
-
-class CellResourceReport : public SimpleRefCount<CellResourceReport>
-{
-public:
-  std::string m_plmId; //!< PLMN identity, octet string, 3 bytes
-  uint16_t m_nrCellId;
-  long dlAvailablePrbs;
-  long ulAvailablePrbs;
-  std::set<Ptr<ServedPlmnPerCell>> m_servedPlmnPerCellItems;
-};
-
-/**
-  * Contains the values to be inserted in the O-DU Measurement Container  
-  */
-class ODuContainerValues : public PmContainerValues
-{
-public:
-  std::set<Ptr<CellResourceReport>> m_cellResourceReportItems;
-};
 
 class KpmIndicationMessage : public SimpleRefCount<KpmIndicationMessage>
 {
@@ -292,8 +190,6 @@ public:
   struct KpmIndicationMessageValues
   {
     std::string m_cellObjectId; //!< Cell Object ID
-    Ptr<PmContainerValues>
-        m_pmContainerValues; //!< struct containing values to be inserted in the PM Container
     Ptr<MeasurementItemList>
         m_cellMeasurementItems; //!< list of cell-specific Measurement Information Items
     std::set<Ptr<MeasurementItemList>> m_ueIndications; //!< list of Measurement Information Items
@@ -382,10 +278,7 @@ public:
   //==================================================================================
 private:
   static void CheckConstraints (KpmIndicationMessageValues values);
-  void FillPmContainer (PF_Container_t *ranContainer, Ptr<PmContainerValues> values);
-  void FillOCuUpContainer (PF_Container_t *ranContainer, Ptr<OCuUpContainerValues> values);
-  void FillOCuCpContainer (PF_Container_t *ranContainer, Ptr<OCuCpContainerValues> values);
-  void FillODuContainer (PF_Container_t *ranContainer, Ptr<ODuContainerValues> values);
+
   void FillAndEncodeKpmIndicationMessage (E2SM_KPM_IndicationMessage_t *descriptor,
                                           KpmIndicationMessageValues values,
                                           const E2SM_KPM_IndicationMessage_FormatType &format_type);
@@ -396,16 +289,16 @@ private:
                                         const std::string& cellObjectId = "");
 
 
+  std::vector<UeReport> ExtractUeReports(const KpmIndicationMessageValues &values);
 
-  void FillKpmIndicationMessageFormat3 (E2SM_KPM_IndicationMessage_Format3 *ind_msg_f_3,
-                                        const KpmIndicationMessageValues &values);
+  void FillKpmIndicationMessageFormat2 (E2SM_KPM_IndicationMessage_Format2 *ind_msg_f_2,
+                                       const KpmIndicationMessageValues &values);
+
 
   std::pair<MeasurementInfoItem_t *, MeasurementDataItem_t *>
   getMesInfoItem (const Ptr<MeasurementItem> &mesItem);
-
-  MeasurementDataItem_t *getMesDataItem (const double &realVal);
-  MeasurementDataItem_t *getMesDataItem (const MeasResultListNR *_measResultListNR);
-  MeasurementDataItem_t *getMesDataItem (const MeasResultServMOList *_MeasResultServMOList);
+  MeasurementDataItem_t * getMesDataItem (const double &realVal);
+  MeasurementDataItem_t * getMesDataItem (long intVal);
 
   void FillUeID (UEID_t *ue_ID, Ptr<MeasurementItemList> ueIndication);
 };
@@ -429,9 +322,3 @@ private:
 } // namespace ns3
 
 #endif /* KPM_INDICATION_H */
-  //void FillKpmIndicationMessageFormat1 (E2SM_KPM_IndicationMessage_Format1 *ind_msg_f_1,
-  //                                        const std::string& cellObjectId = "");
-
-  //void FillKpmIndicationMessageFormat3 (E2SM_KPM_IndicationMessage_Format3 *ind_msg_f_3,
-  //                                      E2SM_KPM_IndicationMessage_Format1 *ind_msg_f_1,
-  //                                       const KpmIndicationMessageValues &values);
